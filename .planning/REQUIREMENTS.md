@@ -115,24 +115,66 @@
 
 ## Traceability
 
-Populated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUND-01 through FOUND-06 | — | Pending |
-| DISC-01 through DISC-06 | — | Pending |
-| ANAL-01 through ANAL-09 | — | Pending |
-| PERS-01 through PERS-05 | — | Pending |
-| LIST-01 through LIST-06 | — | Pending |
-| DETL-01 through DETL-06 | — | Pending |
-| PITCH-01 through PITCH-09 | — | Pending |
-| API-01 through API-05 | — | Pending |
+| FOUND-01 | Phase 1 | Pending |
+| FOUND-02 | Phase 1 | Pending |
+| FOUND-03 | Phase 1 | Pending |
+| FOUND-04 | Phase 1 | Pending |
+| FOUND-05 | Phase 1 | Pending |
+| FOUND-06 | Phase 1 | Pending |
+| DISC-01 | Phase 2 | Pending |
+| DISC-02 | Phase 2 | Pending |
+| DISC-03 | Phase 2 | Pending |
+| DISC-04 | Phase 2 | Pending |
+| DISC-05 | Phase 2 | Pending |
+| DISC-06 | Phase 2 | Pending |
+| ANAL-01 | Phase 3 | Pending |
+| ANAL-02 | Phase 3 | Pending |
+| ANAL-03 | Phase 3 | Pending |
+| ANAL-04 | Phase 3 | Pending |
+| ANAL-05 | Phase 3 | Pending |
+| ANAL-06 | Phase 3 | Pending |
+| ANAL-07 | Phase 3 | Pending |
+| ANAL-08 | Phase 3 | Pending |
+| ANAL-09 | Phase 3 | Pending |
+| PERS-01 | Phase 4 | Pending |
+| PERS-02 | Phase 4 | Pending |
+| PERS-03 | Phase 4 | Pending |
+| PERS-04 | Phase 4 | Pending |
+| PERS-05 | Phase 4 | Pending |
+| API-01 | Phase 5 | Pending |
+| API-02 | Phase 5 | Pending |
+| API-03 | Phase 5 | Pending |
+| API-04 | Phase 5 | Pending |
+| API-05 | Phase 5 | Pending |
+| LIST-01 | Phase 6 | Pending |
+| LIST-02 | Phase 6 | Pending |
+| LIST-03 | Phase 6 | Pending |
+| LIST-04 | Phase 6 | Pending |
+| LIST-05 | Phase 6 | Pending |
+| LIST-06 | Phase 6 | Pending |
+| DETL-01 | Phase 7 | Pending |
+| DETL-02 | Phase 7 | Pending |
+| DETL-03 | Phase 7 | Pending |
+| DETL-04 | Phase 7 | Pending |
+| DETL-05 | Phase 7 | Pending |
+| DETL-06 | Phase 7 | Pending |
+| PITCH-01 | Phase 8 | Pending |
+| PITCH-02 | Phase 8 | Pending |
+| PITCH-03 | Phase 8 | Pending |
+| PITCH-04 | Phase 8 | Pending |
+| PITCH-05 | Phase 8 | Pending |
+| PITCH-06 | Phase 8 | Pending |
+| PITCH-07 | Phase 8 | Pending |
+| PITCH-08 | Phase 8 | Pending |
+| PITCH-09 | Phase 8 | Pending |
 
 **Coverage:**
 - v1 requirements: 44 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 44 ⚠️
+- Mapped to phases: 44
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-04-16*
-*Last updated: 2026-04-16 after initial definition*
+*Last updated: 2026-04-16 after roadmap creation*
