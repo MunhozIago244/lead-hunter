@@ -33,7 +33,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Queries on status, segment, and city use indexes (EXPLAIN confirms)
   4. Re-running the same (name, city) pair upserts instead of creating a duplicate row
   5. TypeScript compiler accepts Lead, LeadStatus, LeadUpdate types without errors
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Next.js 15.3 scaffold with TypeScript strict, Tailwind v4, Supabase client helpers, .env.example, scraper skeleton, README
+- [ ] 01-02-PLAN.md — Supabase migration SQL (leads table, indexes, RLS) and TypeScript Lead/LeadStatus/LeadUpdate types
 
 ### Phase 2: Scraper Discovery
 **Goal**: Running the CLI with --query, --city, --max returns a list of businesses fetched from Google Maps
@@ -129,7 +133,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/TBD | Not started | - |
+| 1. Foundation | 0/2 | Not started | - |
 | 2. Scraper Discovery | 0/TBD | Not started | - |
 | 3. Scraper Analysis | 0/TBD | Not started | - |
 | 4. Scraper Persistence | 0/TBD | Not started | - |
