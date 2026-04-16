@@ -12,7 +12,7 @@ lead-hunter is built in 8 phases that follow the natural data flow: foundation s
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation** - Supabase schema and TypeScript types that the entire system shares
+- [x] **Phase 1: Foundation** - Supabase schema and TypeScript types that the entire system shares (completed 2026-04-16)
 - [ ] **Phase 2: Scraper Discovery** - CLI that queries Google Maps and extracts raw business data
 - [ ] **Phase 3: Scraper Analysis** - PageSpeed + Playwright site analysis producing scores and problems
 - [ ] **Phase 4: Scraper Persistence** - Supabase upsert, deduplication, progress reporting, and resilience
@@ -37,7 +37,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 Plans:
 - [x] 01-01-PLAN.md — Next.js 15.3 scaffold with TypeScript strict, Tailwind v4, Supabase client helpers, .env.example, scraper skeleton, README
-- [ ] 01-02-PLAN.md — Supabase migration SQL (leads table, indexes, RLS) and TypeScript Lead/LeadStatus/LeadUpdate types
+- [x] 01-02-PLAN.md — Supabase migration SQL (leads table, indexes, RLS) and TypeScript Lead/LeadStatus/LeadUpdate types
 
 ### Phase 2: Scraper Discovery
 **Goal**: Running the CLI with --query, --city, --max returns a list of businesses fetched from Google Maps
@@ -137,7 +137,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/2 | Not started | - |
+| 1. Foundation | 2/2 | Complete   | 2026-04-16 |
 | 2. Scraper Discovery | 0/2 | Not started | - |
 | 3. Scraper Analysis | 0/TBD | Not started | - |
 | 4. Scraper Persistence | 0/TBD | Not started | - |

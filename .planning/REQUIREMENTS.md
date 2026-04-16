@@ -7,11 +7,11 @@
 
 ### Foundation
 
-- [ ] **FOUND-01**: Supabase `leads` table exists with all required columns (uuid PK, name, segment, city, address, phone, email, site, has_site, score_mobile, score_speed, score_seo, score_design, problems, pitch, status, contact_channel, notes, created_at, updated_at)
-- [ ] **FOUND-02**: Status column has CHECK constraint: new / contacted / replied / closed / discarded
-- [ ] **FOUND-03**: Indexes exist on status, segment, and city columns
-- [ ] **FOUND-04**: UNIQUE constraint on (name, city) to enable upsert deduplication
-- [ ] **FOUND-05**: RLS policy allows scraper (service_role) to insert/update and dashboard (anon) to read
+- [x] **FOUND-01**: Supabase `leads` table exists with all required columns (uuid PK, name, segment, city, address, phone, email, site, has_site, score_mobile, score_speed, score_seo, score_design, problems, pitch, status, contact_channel, notes, created_at, updated_at)
+- [x] **FOUND-02**: Status column has CHECK constraint: new / contacted / replied / closed / discarded
+- [x] **FOUND-03**: Indexes exist on status, segment, and city columns
+- [x] **FOUND-04**: UNIQUE constraint on (name, city) to enable upsert deduplication
+- [x] **FOUND-05**: RLS policy allows scraper (service_role) to insert/update and dashboard (anon) to read
 - [x] **FOUND-06**: TypeScript interfaces match schema exactly (Lead, LeadStatus, LeadUpdate types)
 
 ### Scraper — Discovery
@@ -117,11 +117,11 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUND-01 | Phase 1 | Pending |
-| FOUND-02 | Phase 1 | Pending |
-| FOUND-03 | Phase 1 | Pending |
-| FOUND-04 | Phase 1 | Pending |
-| FOUND-05 | Phase 1 | Pending |
+| FOUND-01 | Phase 1 | Complete |
+| FOUND-02 | Phase 1 | Complete |
+| FOUND-03 | Phase 1 | Complete |
+| FOUND-04 | Phase 1 | Complete |
+| FOUND-05 | Phase 1 | Complete |
 | FOUND-06 | Phase 1 | Complete |
 | DISC-01 | Phase 2 | Pending |
 | DISC-02 | Phase 2 | Pending |
