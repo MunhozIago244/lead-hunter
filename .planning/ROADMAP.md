@@ -36,7 +36,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Next.js 15.3 scaffold with TypeScript strict, Tailwind v4, Supabase client helpers, .env.example, scraper skeleton, README
+- [x] 01-01-PLAN.md — Next.js 15.3 scaffold with TypeScript strict, Tailwind v4, Supabase client helpers, .env.example, scraper skeleton, README
 - [ ] 01-02-PLAN.md — Supabase migration SQL (leads table, indexes, RLS) and TypeScript Lead/LeadStatus/LeadUpdate types
 
 ### Phase 2: Scraper Discovery

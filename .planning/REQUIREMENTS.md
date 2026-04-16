@@ -12,7 +12,7 @@
 - [ ] **FOUND-03**: Indexes exist on status, segment, and city columns
 - [ ] **FOUND-04**: UNIQUE constraint on (name, city) to enable upsert deduplication
 - [ ] **FOUND-05**: RLS policy allows scraper (service_role) to insert/update and dashboard (anon) to read
-- [ ] **FOUND-06**: TypeScript interfaces match schema exactly (Lead, LeadStatus, LeadUpdate types)
+- [x] **FOUND-06**: TypeScript interfaces match schema exactly (Lead, LeadStatus, LeadUpdate types)
 
 ### Scraper — Discovery
 
@@ -122,7 +122,7 @@
 | FOUND-03 | Phase 1 | Pending |
 | FOUND-04 | Phase 1 | Pending |
 | FOUND-05 | Phase 1 | Pending |
-| FOUND-06 | Phase 1 | Pending |
+| FOUND-06 | Phase 1 | Complete |
 | DISC-01 | Phase 2 | Pending |
 | DISC-02 | Phase 2 | Pending |
 | DISC-03 | Phase 2 | Pending |
