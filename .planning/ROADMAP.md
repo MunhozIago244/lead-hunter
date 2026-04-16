@@ -49,7 +49,11 @@ Plans:
   3. Running the same query twice does not produce duplicate entries (upsert by name+city)
   4. API errors trigger exponential backoff instead of hard crash
   5. Only field-masked fields are requested (no Pro SKU escalation in billing logs)
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — CLI scaffold, Places API (New) Text Search with field mask, result extraction to leads schema
+- [ ] 02-02-PLAN.md — Pagination (nextPageToken), exponential backoff, Supabase upsert, tqdm progress, summary output
 
 ### Phase 3: Scraper Analysis
 **Goal**: Each discovered business has quantified scores and a list of identified problems
@@ -134,7 +138,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 0/2 | Not started | - |
-| 2. Scraper Discovery | 0/TBD | Not started | - |
+| 2. Scraper Discovery | 0/2 | Not started | - |
 | 3. Scraper Analysis | 0/TBD | Not started | - |
 | 4. Scraper Persistence | 0/TBD | Not started | - |
 | 5. Dashboard API Routes | 0/TBD | Not started | - |
