@@ -62,10 +62,10 @@ async function requestLeads(
   return payload as LeadsResponse
 }
 
-async function requestTotalCount(signal: AbortSignal): Promise<number> {
+async function requestTotalCount(signal: AbortSignal): Promise<{ total: number; critical: number }> {
   const response = await fetch('/api/leads/count', { method: 'GET', cache: 'no-store', signal })
-  const payload = (await response.json().catch(() => null)) as { total?: number } | null
-  return payload?.total ?? 0
+  const payload = (await response.json().catch(() => null)) as { total?: number; critical?: number } | null
+  return { total: payload?.total ?? 0, critical: payload?.critical ?? 0 }
 }
 
 function getScore(lead: Lead) { return getLeadAverageScore(lead) }
@@ -120,6 +120,7 @@ export function LeadListDashboard() {
   const [leads, setLeads] = useState<Lead[]>([])
   const [totalFiltered, setTotalFiltered] = useState(0)
   const [totalAll, setTotalAll] = useState<number | null>(null)
+  const [totalCritical, setTotalCritical] = useState<number | null>(null)
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
   const [slideOpen, setSlideOpen] = useState(false)
   const [quickFilter, setQuickFilter] = useState<QuickFilter>('all')
@@ -138,11 +139,16 @@ export function LeadListDashboard() {
   const [bulkError, setBulkError] = useState<string | null>(null)
   const deferredSearch = useDeferredValue(searchInput)
 
-  // Load total count once on mount
+  // Load total count + critical count once on mount
   useEffect(() => {
     const controller = new AbortController()
     requestTotalCount(controller.signal)
-      .then((total) => { if (!controller.signal.aborted) setTotalAll(total) })
+      .then((result) => {
+        if (!controller.signal.aborted) {
+          setTotalAll(result.total)
+          setTotalCritical(result.critical)
+        }
+      })
       .catch(() => {})
     return () => controller.abort()
   }, [])
@@ -334,7 +340,9 @@ export function LeadListDashboard() {
             </div>
             <div className="rounded-[1.35rem] border border-border bg-surface-strong p-4">
               <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">Críticos</p>
-              <p className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-warning">{criticalCount}</p>
+              <p className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-warning">
+                {totalCritical === null ? '—' : totalCritical.toLocaleString('pt-BR')}
+              </p>
             </div>
             <div className="rounded-[1.35rem] border border-border bg-surface-strong p-4">
               <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">Estado</p>
