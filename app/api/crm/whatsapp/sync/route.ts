@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger'
 import { NextRequest } from 'next/server'
 
 import { apiError, apiJson } from '@/lib/api/response'
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest) {
       status: result.jobStatus === 'failed' ? 500 : 200,
     })
   } catch (error) {
-    console.error('[POST /api/crm/whatsapp/sync] Unexpected error:', error)
+    logger.error('[POST /api/crm/whatsapp/sync] Unexpected error:', error)
     return apiError(500, 'Failed to process CRM WhatsApp sync.')
   }
 }

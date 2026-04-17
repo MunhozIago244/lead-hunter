@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger'
 import { NextRequest } from 'next/server'
 
 import {
@@ -85,7 +86,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       .maybeSingle()
 
     if (existingLead.error) {
-      console.error('[PATCH /api/lead/:id] Load error:', existingLead.error.message)
+      logger.error('[PATCH /api/lead/:id] Load error:', existingLead.error.message)
       return apiError(500, 'Failed to load lead.')
     }
 
@@ -101,7 +102,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       .maybeSingle()
 
     if (updatedLead.error) {
-      console.error('[PATCH /api/lead/:id] Update error:', updatedLead.error.message)
+      logger.error('[PATCH /api/lead/:id] Update error:', updatedLead.error.message)
       return apiError(500, 'Failed to update lead.')
     }
 
@@ -111,7 +112,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     return apiJson({ lead: updatedLead.data })
   } catch (error) {
-    console.error('[PATCH /api/lead/:id] Unexpected error:', error)
+    logger.error('[PATCH /api/lead/:id] Unexpected error:', error)
     return apiError(500, 'Internal server error.')
   }
 }

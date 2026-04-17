@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger'
 import { NextRequest } from 'next/server'
 
 import {
@@ -84,7 +85,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query
 
     if (error) {
-      console.error('[GET /api/leads] Supabase query error:', error.message)
+      logger.error('[GET /api/leads] Supabase query error:', error.message)
       return apiError(500, 'Failed to fetch leads.')
     }
 
@@ -99,7 +100,7 @@ export async function GET(request: NextRequest) {
 
     return apiJson(leads)
   } catch (error) {
-    console.error('[GET /api/leads] Unexpected error:', error)
+    logger.error('[GET /api/leads] Unexpected error:', error)
     return apiError(500, 'Internal server error.')
   }
 }

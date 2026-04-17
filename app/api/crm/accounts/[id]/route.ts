@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger'
 import { NextRequest } from 'next/server'
 
 import {
@@ -83,7 +84,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       .maybeSingle()
 
     if (existingAccount.error) {
-      console.error('[PATCH /api/crm/accounts/:id] Load error:', existingAccount.error.message)
+      logger.error('[PATCH /api/crm/accounts/:id] Load error:', existingAccount.error.message)
       return apiError(500, 'Failed to load CRM account.')
     }
 
@@ -99,7 +100,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       .maybeSingle()
 
     if (updatedAccount.error) {
-      console.error('[PATCH /api/crm/accounts/:id] Update error:', updatedAccount.error.message)
+      logger.error('[PATCH /api/crm/accounts/:id] Update error:', updatedAccount.error.message)
       return apiError(500, 'Failed to update CRM account.')
     }
 
@@ -109,7 +110,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     return apiJson({ account: updatedAccount.data })
   } catch (error) {
-    console.error('[PATCH /api/crm/accounts/:id] Unexpected error:', error)
+    logger.error('[PATCH /api/crm/accounts/:id] Unexpected error:', error)
     return apiError(500, 'Internal server error.')
   }
 }

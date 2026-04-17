@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger'
 import { NextRequest } from 'next/server'
 
 import {
@@ -85,7 +86,7 @@ export async function POST(request: NextRequest) {
       return apiError(404, 'Lead not found.')
     }
 
-    console.error('[POST /api/crm/accounts/from-lead] Unexpected error:', error)
+    logger.error('[POST /api/crm/accounts/from-lead] Unexpected error:', error)
     return apiError(500, 'Failed to convert lead into CRM account.')
   }
 }
