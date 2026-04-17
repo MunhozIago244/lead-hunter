@@ -201,7 +201,7 @@ export function LeadPitchBox({ lead, onLeadUpdated }: LeadPitchBoxProps) {
         {hasPitch ? (
           <p className="whitespace-pre-wrap">{pitchText}</p>
         ) : (
-          <p className="text-muted">Nenhum pitch gerado ainda. Clique em "Gerar pitch" para criar uma mensagem personalizada.</p>
+          <p className="text-muted">Nenhum pitch gerado ainda. Clique em &ldquo;Gerar pitch&rdquo; para criar uma mensagem personalizada.</p>
         )}
       </div>
 
