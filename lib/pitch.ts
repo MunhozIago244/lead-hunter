@@ -148,6 +148,55 @@ async function generatePitchWithProvider(
   return generatePitchWithOpenAI(prompt, lead)
 }
 
+export function buildImprovePrompt(lead: Lead, currentPitch: string, instruction: string): PitchPrompt {
+  const system = [
+    'Voce e um assistente de copywriting para um freelancer de web design no Brasil.',
+    'Voce recebe um pitch existente e uma instrucao de melhoria.',
+    'Reescreva o pitch seguindo a instrucao, mantendo o tom casual-profissional.',
+    'Sem markdown, sem listas, sem aspas. Use somente portugues do Brasil.',
+    '3 a 4 frases curtas no maximo.',
+  ].join(' ')
+
+  const user = [
+    buildBusinessDataBlock(lead),
+    `<pitch_atual>\n${currentPitch.trim()}\n</pitch_atual>`,
+    `<instrucao>${instruction.trim()}</instrucao>`,
+    'Reescreva o pitch aplicando a instrucao acima.',
+  ].join('\n\n')
+
+  return { system, user }
+}
+
+export async function improvePitchForLead(
+  lead: Lead,
+  instruction: string
+): Promise<PitchGenerationResult> {
+  const currentPitch = lead.pitch?.trim() ?? ''
+  const prompt = buildImprovePrompt(lead, currentPitch, instruction)
+  const providers = resolvePitchProviderOrder()
+  let lastError: unknown = null
+  const attempts: PitchProviderAttempt[] = []
+
+  for (const [index, provider] of providers.entries()) {
+    const startedAt = Date.now()
+    try {
+      const pitch = await generatePitchWithProvider(provider, prompt, lead)
+      logger.info({ provider, leadId: lead.id, result: 'success', durationMs: Date.now() - startedAt }, '[pitch/improve] Provider success')
+      return { pitch, provider }
+    } catch (error) {
+      lastError = error
+      attempts.push({ provider, reason: getPitchProviderErrorReason(error), recoverable: shouldRetryWithFallback(error) })
+      logger.error({ provider, leadId: lead.id, result: 'failure', err: error instanceof Error ? error.message : error }, '[pitch/improve] Provider failure')
+      if (!shouldRetryWithFallback(error) || index === providers.length - 1) break
+    }
+  }
+
+  if (lastError instanceof PitchProviderError) {
+    throw new PitchProviderError({ provider: lastError.provider, message: lastError.message, reason: lastError.reason, recoverable: lastError.recoverable, cause: lastError.cause ?? lastError, attempts })
+  }
+  throw new PitchProviderError({ provider: providers[providers.length - 1] ?? 'groq', message: 'Pitch improvement unavailable.', reason: 'provider_unavailable', recoverable: true, cause: lastError, attempts })
+}
+
 export async function generatePitchForLead(
   lead: Lead
 ): Promise<PitchGenerationResult> {
