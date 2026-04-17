@@ -1,0 +1,8 @@
+[project]
+# Supabase project reference — set via SUPABASE_PROJECT_REF env var or fill in below.
+# Found in: Project Settings > General > Reference ID
+# project_id = "your-project-ref"
+
+[db]
+# Connection pooling mode (transaction recommended for serverless)
+pool_mode = "transaction"
