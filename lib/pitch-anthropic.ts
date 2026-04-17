@@ -52,6 +52,26 @@ function normalizeAnthropicError(error: unknown) {
     })
   }
 
+  if (status === 401 || status === 403) {
+    return new PitchProviderError({
+      provider: ANTHROPIC_PROVIDER,
+      message: 'Anthropic provider rejected the server credentials.',
+      reason: 'missing_api_key',
+      recoverable: true,
+      cause: error,
+    })
+  }
+
+  if (status === 400) {
+    return new PitchProviderError({
+      provider: ANTHROPIC_PROVIDER,
+      message: 'Anthropic provider rejected the pitch request payload.',
+      reason: 'provider_unavailable',
+      recoverable: true,
+      cause: error,
+    })
+  }
+
   return new PitchProviderError({
     provider: ANTHROPIC_PROVIDER,
     message:
