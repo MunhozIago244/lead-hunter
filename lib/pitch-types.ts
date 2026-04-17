@@ -1,6 +1,6 @@
 import type { Lead } from '@/types/lead'
 
-export type PitchProvider = 'anthropic' | 'openai'
+export type PitchProvider = 'anthropic' | 'openai' | 'gemini'
 export type PitchProviderConfig = PitchProvider | 'none'
 
 export type PitchPrompt = {
