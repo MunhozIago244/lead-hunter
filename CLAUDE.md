@@ -10,7 +10,7 @@ lead-hunter is a semi-automated freelance client prospecting system for a web de
 ### Constraints
 
 - **Tech Stack**: Next.js 15 App Router, TypeScript strict, Tailwind CSS, Supabase, Python 3.11+ — locked per spec
-- **AI Model**: `claude-sonnet-4-20250514` — specified by user
+- **AI Model**: `claude-sonnet-4-6` — current target for pitch generation
 - **Python runtime**: Python 3.11+ with playwright, requests, supabase-py, tqdm
 - **No unnecessary deps**: Only use what's in the defined stack
 - **Responsiveness**: Dashboard must work at 1024px+ minimum width
@@ -46,29 +46,26 @@ lead-hunter is a semi-automated freelance client prospecting system for a web de
 | playwright (Python) | 1.49+ (latest stable) | Headless browser for site analysis | Best async support, CDP access, screenshot capability. Superior to Selenium for modern sites. Install chromium via `playwright install chromium` — do NOT install full browser suite. |
 | playwright-stealth (tf-playwright-stealth) | 2.0.2 | Anti-bot fingerprint patching | Use `tf-playwright-stealth` on PyPI (actively maintained fork). Original `playwright-stealth` package is abandoned. Patches WebDriver flags, HeadlessChrome UA, missing plugins. Use `Stealth().use_async(page)` pattern (NOT the old `stealth_async(page)` from v1.x). |
 | supabase-py | 2.28.3 | Supabase writes from scraper | Latest stable (March 2026). Supports both sync and async clients. For this scraper, sync client is sufficient — no need for async unless running concurrent requests. Use `acreate_client()` for async. |
-| requests | 2.31+ | HTTP client for APIs | Used for Google Maps Places API and PageSpeed Insights API calls. Simpler than httpx for non-async contexts. |
+| requests | 2.31+ | HTTP client for site checks | Used for local site fetch analysis, SSL/response heuristics, and lightweight exports. Simpler than httpx for this sync CLI. |
 | tqdm | 4.x | Progress bar | Locked per spec. |
 | python-dotenv | 1.x | Env var loading | Load API keys from `.env` in CLI context. |
 | argparse | stdlib | CLI flags | Locked per spec (`--query`, `--city`, `--max`). No extra dep needed. |
-### External APIs (Python scraper)
-#### Google Maps Places API
+### External Sources (Python scraper)
+#### Google Maps public web
 | Decision | Detail |
 |----------|--------|
-| Use **Places API (New)**, not legacy | Effective March 1, 2025, new projects cannot enable legacy services. Legacy is deprecated with no new features. |
-| Endpoints to use | **Text Search (New)**: `POST https://places.googleapis.com/v1/places:searchText` — query by niche + city string. Returns structured place data. |
-| Field masking | Use `X-Goog-FieldMask` header to request only needed fields: `places.displayName,places.formattedAddress,places.internationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.businessStatus` — billed at lowest applicable SKU tier. |
-| Free tier | Essentials SKUs: 10,000 free billable events/month. Pro SKUs: 5,000/month. Text Search is a Pro SKU. For a solo prospecting tool running a few searches per day, free tier is sufficient. |
-| Quota limits | No hard daily quota documented for Places API (New); billing kicks in after free tier. Set a budget alert in Google Cloud to avoid surprise charges. |
-| Authentication | API key in request header `X-Goog-Api-Key`. Store in `.env`, never commit. |
-| Client | Raw `requests` calls — no official Python SDK needed. The `googlemaps` PyPI package still uses legacy endpoints; avoid it. |
-#### PageSpeed Insights API
+| Source strategy | Scrape public Google Maps result pages locally with Playwright instead of using Places API. |
+| Why | Removes recurring API cost while preserving the best local-business coverage for Brazil. |
+| Authentication | None. Public browsing only; no Google login and no API key. |
+| Risk | Google can throttle or change DOM structure. Mitigate with real browser context, small batches, and resilient selectors. |
+| Compatibility | Discovery still maps into the same `leads` schema used by the Next.js dashboard and CRM. |
+#### Local site analysis
 | Decision | Detail |
 |----------|--------|
-| Version | v5 (current, no v6) |
-| Authentication | API key optional for low volume. Without key: undocumented per-origin rate limiting applies (reports suggest ~1 req/min per IP). With free key: 25,000 queries/day, 400/100 seconds. Use an API key. |
-| Strategy | Call twice per site: `strategy=mobile` (primary score for pitch) and `strategy=desktop`. Mobile score is the more impactful signal for local businesses. |
-| Fields to extract | From `lighthouseResult.categories`: `performance.score`, `seo.score`, `accessibility.score`. From `lighthouseResult.audits`: `first-contentful-paint.displayValue`, `speed-index.displayValue`, `largest-contentful-paint.displayValue`. From `loadingExperience`: `LARGEST_CONTENTFUL_PAINT_MS.category` for real-world CWV rating. |
-| Rate limiting in scraper | Add 2-second sleep between PSI calls. PSI runs a live Lighthouse test — it's slow (~5-10 seconds per call) so this isn't a bottleneck. |
+| Strategy | Replace PageSpeed API with local fetch + Playwright heuristics. |
+| Signals | HTTPS, response time, viewport meta, contact presence, content depth, title/description/OG tags, favicon, WhatsApp CTA, image alt coverage, copyright freshness. |
+| Cost | Zero API cost. Requires only local network access and Playwright Chromium. |
+| Tradeoff | Scores are heuristic and not identical to Lighthouse/PageSpeed, but they are cheaper and sufficient for lead qualification. |
 ### Database
 | Technology | Version | Purpose | Why |
 |------------|---------|---------|-----|
@@ -81,17 +78,17 @@ lead-hunter is a semi-automated freelance client prospecting system for a web de
 | Technology | Version | Purpose | Why |
 |------------|---------|---------|-----|
 | anthropic (Python SDK) | 0.96.0 | Pitch generation | Latest stable (April 16, 2026). Used in Python scraper OR triggered from Next.js API route. |
-| Model | `claude-sonnet-4-20250514` | Pitch text generation | Specified by user. Note: this model is **deprecated** and will be retired June 15, 2026. It still works until then. For post-June production use, migrate to `claude-sonnet-4-6`. Both are identical in pricing ($3/MTok input, $15/MTok output). |
+| Model | `claude-sonnet-4-6` | Pitch text generation | Current target model for pitch generation in this repo. |
 ## What NOT to Use
 | Category | Avoid | Reason |
 |----------|-------|--------|
 | Supabase client | `@supabase/auth-helpers-nextjs` | Deprecated. Replaced by `@supabase/ssr`. Tutorials using `createClientComponentClient` / `createServerComponentClient` are outdated. |
 | Playwright stealth | `playwright-stealth` (original, `AtuboDad/playwright_stealth`) | Abandoned. Use `tf-playwright-stealth` instead. |
 | Playwright stealth API | `stealth_async(page)` / `stealth_sync(page)` | v1.x API. Use `Stealth().use_async(page)` (v2.x). |
-| Google Maps Python | `googlemaps` PyPI package | Uses legacy Places API endpoints. Will break post-legacy deprecation. Use raw `requests` to Places API (New). |
+| Google Maps Python | `googlemaps` PyPI package | Tied to legacy API flows and unnecessary for the local scraping approach. |
 | Playwright | Sync API for scraper | Sync API blocks on every operation. With 30+ leads per run, async is significantly faster. |
 | AI API | `claude-sonnet-4-6` alias only | The alias resolves to current latest — safe, but pin the explicit model ID in production to avoid unexpected behavior changes on model updates. |
-| PageSpeed API | Without API key | Triggers undocumented per-IP rate limiting that will silently fail at scale. Get a free key. |
+| Paid Google APIs | Places/PageSpeed as a hard dependency | Adds avoidable cost to a solo local prospecting workflow. Prefer local scraping + heuristic analysis. |
 | Supabase | anon key in Python scraper | Python scraper runs server-side. Use `SUPABASE_SERVICE_ROLE_KEY` for scraper writes (bypasses RLS safely). Use anon/publishable key only in the browser. |
 | Tailwind | v3 config style (`tailwind.config.js` with `content` array) | v4 uses CSS-native `@theme`. Starting a new project with v3 patterns with a v4 install breaks silently. |
 | Next.js Route Handlers | Express.js or separate API server | No separate backend needed. Route Handlers in App Router are sufficient and eliminate an extra deployment target. |
@@ -104,10 +101,10 @@ lead-hunter is a semi-automated freelance client prospecting system for a web de
 | Next.js 15 + @supabase/ssr pattern | HIGH | Official Supabase docs (supabase.com/docs) | Two-client pattern (createBrowserClient / createServerClient) is current and documented |
 | Supabase-py version (2.28.3) | HIGH | PyPI direct fetch | Confirmed April 2026 |
 | Anthropic SDK version (0.96.0) | HIGH | PyPI direct fetch | Confirmed April 16, 2026 |
-| Claude model IDs | HIGH | Official Anthropic docs (platform.claude.com) | `claude-sonnet-4-20250514` confirmed as legacy/deprecated but functional until June 15, 2026 |
+| Claude model IDs | HIGH | Official Anthropic docs (platform.claude.com) | `claude-sonnet-4-6` is the active model target used by the pitch flow. |
 | tf-playwright-stealth v2 API | MEDIUM | PyPI + multiple scraping blogs | Original package abandoned; tf fork is maintained. v2 API change from v1 confirmed across multiple sources. |
-| Places API (New) migration | HIGH | Google official docs (March 2025 billing changes) | Legacy disabled for new projects from March 1, 2025 — confirmed |
-| PageSpeed Insights rate limits | MEDIUM | Google docs + community reports | Official limit (25k/day with key) is HIGH confidence. Undocumented per-IP throttling is MEDIUM — reported but not officially documented. |
+| Local Google Maps scraping viability | MEDIUM | Practical implementation choice | Works well for low-volume local use, but selectors may need maintenance when Google changes UI. |
+| Local site heuristics | MEDIUM | Internal scoring logic | Sufficient for qualification; not equivalent to Lighthouse. |
 | Tailwind v4 / Next.js 15.3 defaults | HIGH | Multiple current blog posts + official Next.js docs | v4 is standard for new Next.js 15 projects as of 2025 |
 | Async Playwright recommendation | MEDIUM | Official Playwright docs + community patterns | Async is the recommended pattern per docs; concurrent benefit for this use case is inference, not benchmarked. |
 ## Sources
@@ -116,11 +113,6 @@ lead-hunter is a semi-automated freelance client prospecting system for a web de
 - Anthropic model IDs (official): https://platform.claude.com/docs/en/about-claude/models/overview
 - Anthropic SDK on PyPI: https://pypi.org/project/anthropic/
 - supabase-py on PyPI: https://pypi.org/project/supabase/
-- Google Maps Places API (New) billing March 2025: https://developers.google.com/maps/billing-and-pricing/march-2025
-- Places API (New) usage and billing: https://developers.google.com/maps/documentation/places/web-service/usage-and-billing
-- Places API Legacy overview: https://developers.google.com/maps/documentation/places/web-service/legacy/overview-legacy
-- PageSpeed Insights API reference: https://developers.google.com/speed/docs/insights/v5/reference
-- PageSpeed Insights rate limits (community): https://bjb.dev/log/20221009-pagespeed-api/
 - tf-playwright-stealth: https://pypi.org/project/tf-playwright-stealth/
 - Playwright Python docs: https://playwright.dev/python/docs/library
 - Next.js 15 + Tailwind v4: https://dev.to/darshan_bajgain/setting-up-2025-nextjs-15-with-shadcn-tailwind-css-v4-no-config-needed-dark-mode-5kl
@@ -135,7 +127,26 @@ Conventions not yet established. Will populate as patterns emerge during develop
 <!-- GSD:architecture-start source:ARCHITECTURE.md -->
 ## Architecture
 
-Architecture not yet mapped. Follow existing patterns found in the codebase.
+lead-hunter uses a 3-layer architecture:
+
+- **Python CLI scraper** (`scraper/scraper.py`) handles discovery, site analysis, heuristic scoring, and Supabase upserts
+- **Supabase** is the shared integration boundary; v1 centers on a single `leads` table
+- **Next.js dashboard** renders the UI and talks to internal API routes for reads and mutations
+
+Canonical dashboard interfaces:
+
+- `GET /api/leads` for filtered lead reads
+- `PATCH /api/lead/[id]` for status/notes/contact updates
+- `POST /api/pitch` for Claude-generated pitches persisted to the DB
+
+Field ownership is explicit:
+
+- scraper-owned: business identity, contact discovery, site scores, problems
+- user-owned: `pitch`, `status`, `contact_channel`, `notes`
+
+Re-scrapes must never overwrite user-owned fields.
+
+Current repo status: all planned v1 phases are implemented locally (schema, types, Supabase helpers, local Google Maps scraping discovery, no-site fallback, local fetch-based site analysis, Playwright heuristics, blocked-site safeguards, ordered problems, startup Supabase validation, user-field preservation on re-scrape, hardened CLI reporting, optional FastAPI local scraper endpoints, internal Next.js routes for leads, lead PATCH updates, pitch generation, and a homepage dashboard that consumes `GET /api/leads` with quick filters, local search, selected-lead highlighting, score cards, problems/contact rendering, async status mutation, pitch generation/re-generation, copy-to-clipboard, WhatsApp deep links, and email deep links). Live integration verification is still planned.
 <!-- GSD:architecture-end -->
 
 <!-- GSD:workflow-start source:GSD defaults -->

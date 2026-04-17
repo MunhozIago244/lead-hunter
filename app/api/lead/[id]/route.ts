@@ -86,7 +86,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       .maybeSingle()
 
     if (existingLead.error) {
-      logger.error('[PATCH /api/lead/:id] Load error:', existingLead.error.message)
+      logger.error({ err: existingLead.error.message }, '[PATCH /api/lead/:id] Load error')
       return apiError(500, 'Failed to load lead.')
     }
 
@@ -102,7 +102,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       .maybeSingle()
 
     if (updatedLead.error) {
-      logger.error('[PATCH /api/lead/:id] Update error:', updatedLead.error.message)
+      logger.error({ err: updatedLead.error.message }, '[PATCH /api/lead/:id] Update error')
       return apiError(500, 'Failed to update lead.')
     }
 
@@ -112,7 +112,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     return apiJson({ lead: updatedLead.data })
   } catch (error) {
-    logger.error('[PATCH /api/lead/:id] Unexpected error:', error)
+    logger.error({ err: error }, '[PATCH /api/lead/:id] Unexpected error')
     return apiError(500, 'Internal server error.')
   }
 }

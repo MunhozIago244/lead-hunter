@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
       status: result.jobStatus === 'failed' ? 500 : 200,
     })
   } catch (error) {
-    logger.error('[POST /api/crm/whatsapp/sync] Unexpected error:', error)
+    logger.error({ err: error }, '[POST /api/crm/whatsapp/sync] Unexpected error')
     return apiError(500, 'Failed to process CRM WhatsApp sync.')
   }
 }

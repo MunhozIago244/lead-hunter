@@ -43,3 +43,7 @@ next-env.d.ts
 
 # git worktrees
 .worktrees/
+
+# scraper output
+scraper/output/
+scraper/__pycache__/

@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
 
     if (leadResult.error) {
-      logger.error('[POST /api/pitch] Lead load error:', leadResult.error.message)
+      logger.error({ err: leadResult.error.message }, '[POST /api/pitch] Lead load error')
       return apiError(500, 'Failed to load lead.')
     }
 
@@ -105,13 +105,13 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
 
     if (saveResult.error) {
-      logger.error('[POST /api/pitch] Pitch save error:', saveResult.error.message)
+      logger.error({ err: saveResult.error.message }, '[POST /api/pitch] Pitch save error')
       return apiError(500, 'Failed to save pitch.')
     }
 
     return apiJson({ pitch })
   } catch (error) {
-    logger.error('[POST /api/pitch] Unexpected error:', error)
+    logger.error({ err: error }, '[POST /api/pitch] Unexpected error')
     return apiError(500, 'Internal server error.')
   }
 }

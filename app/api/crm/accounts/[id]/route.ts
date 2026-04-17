@@ -84,7 +84,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       .maybeSingle()
 
     if (existingAccount.error) {
-      logger.error('[PATCH /api/crm/accounts/:id] Load error:', existingAccount.error.message)
+      logger.error({ err: existingAccount.error.message }, '[PATCH /api/crm/accounts/:id] Load error')
       return apiError(500, 'Failed to load CRM account.')
     }
 
@@ -100,7 +100,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       .maybeSingle()
 
     if (updatedAccount.error) {
-      logger.error('[PATCH /api/crm/accounts/:id] Update error:', updatedAccount.error.message)
+      logger.error({ err: updatedAccount.error.message }, '[PATCH /api/crm/accounts/:id] Update error')
       return apiError(500, 'Failed to update CRM account.')
     }
 
@@ -110,7 +110,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     return apiJson({ account: updatedAccount.data })
   } catch (error) {
-    logger.error('[PATCH /api/crm/accounts/:id] Unexpected error:', error)
+    logger.error({ err: error }, '[PATCH /api/crm/accounts/:id] Unexpected error')
     return apiError(500, 'Internal server error.')
   }
 }

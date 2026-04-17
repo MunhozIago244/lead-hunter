@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query
 
     if (error) {
-      logger.error('[GET /api/leads] Supabase query error:', error.message)
+      logger.error({ err: error.message }, '[GET /api/leads] Supabase query error')
       return apiError(500, 'Failed to fetch leads.')
     }
 
@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
 
     return apiJson(leads)
   } catch (error) {
-    logger.error('[GET /api/leads] Unexpected error:', error)
+    logger.error({ err: error }, '[GET /api/leads] Unexpected error')
     return apiError(500, 'Internal server error.')
   }
 }

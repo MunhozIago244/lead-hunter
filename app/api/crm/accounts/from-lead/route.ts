@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
       return apiError(404, 'Lead not found.')
     }
 
-    logger.error('[POST /api/crm/accounts/from-lead] Unexpected error:', error)
+    logger.error({ err: error }, '[POST /api/crm/accounts/from-lead] Unexpected error')
     return apiError(500, 'Failed to convert lead into CRM account.')
   }
 }
