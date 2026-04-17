@@ -1,6 +1,7 @@
 import { logger } from '@/lib/logger'
 import { generatePitchWithAnthropic } from '@/lib/pitch-anthropic'
 import { generatePitchWithGemini } from '@/lib/pitch-gemini'
+import { generatePitchWithGroq } from '@/lib/pitch-groq'
 import { generatePitchWithOpenAI } from '@/lib/pitch-openai'
 import {
   PitchProviderError,
@@ -12,7 +13,7 @@ import {
 } from '@/lib/pitch-types'
 import type { Lead } from '@/types/lead'
 
-const DEFAULT_PITCH_PROVIDER_ORDER: PitchProvider[] = ['gemini', 'anthropic', 'openai']
+const DEFAULT_PITCH_PROVIDER_ORDER: PitchProvider[] = ['groq', 'gemini', 'anthropic', 'openai']
 
 function sanitizeUntrustedText(value: string | null | undefined, maxLength = 200) {
   if (!value) {
@@ -97,7 +98,7 @@ function normalizePitchProvider(value: string | undefined): PitchProviderConfig 
     return 'none'
   }
 
-  if (normalized === 'anthropic' || normalized === 'openai' || normalized === 'gemini') {
+  if (normalized === 'anthropic' || normalized === 'openai' || normalized === 'gemini' || normalized === 'groq') {
     return normalized
   }
 
@@ -114,7 +115,7 @@ export function resolvePitchProviderOrder() {
     ...configured,
     ...DEFAULT_PITCH_PROVIDER_ORDER,
   ].filter((provider): provider is PitchProvider => {
-    return provider === 'anthropic' || provider === 'openai' || provider === 'gemini'
+    return provider === 'anthropic' || provider === 'openai' || provider === 'gemini' || provider === 'groq'
   })
 
   return Array.from(new Set(orderedProviders))
@@ -143,6 +144,7 @@ async function generatePitchWithProvider(
 ) {
   if (provider === 'anthropic') return generatePitchWithAnthropic(prompt, lead)
   if (provider === 'gemini') return generatePitchWithGemini(prompt, lead)
+  if (provider === 'groq') return generatePitchWithGroq(prompt, lead)
   return generatePitchWithOpenAI(prompt, lead)
 }
 
