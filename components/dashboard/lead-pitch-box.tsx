@@ -299,7 +299,7 @@ export function LeadPitchBox({ lead, onLeadUpdated }: LeadPitchBoxProps) {
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleImprove(customInstruction)
               }}
-              placeholder="Ou escreva sua instrução... (ex: mencione que somos especializados em negócios locais)"
+              placeholder="Ou escreva sua instrução... (ex: mencione que é especializado em negócios locais)"
               rows={2}
               maxLength={400}
               className="flex-1 resize-none rounded-[0.9rem] border border-border bg-background px-3 py-2 text-sm outline-none placeholder:text-muted focus:border-accent/40"

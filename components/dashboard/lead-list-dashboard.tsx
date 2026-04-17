@@ -231,8 +231,6 @@ export function LeadListDashboard() {
   )
   const cityOptions = sortUniqueValues(catalogLeads.map((l) => l.city))
 
-  const criticalCount = visibleLeads.filter((l) => { const s = getScore(l); return s !== null && s < 40 }).length
-
   function handleExportCsv() {
     if (visibleLeads.length === 0) return
     const headers = ['Nome', 'Status', 'Segmento', 'Cidade', 'Telefone', 'Email', 'Site', 'Score médio', 'Tem site']
