@@ -163,9 +163,53 @@ GENERIC_FONT_MARKERS = {
 PHONE_PATTERN = re.compile(r"\+?\d[\d\s().-]{7,}")
 EMAIL_PATTERN = re.compile(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", re.IGNORECASE)
 WORD_PATTERN = re.compile(r"[0-9A-Za-zÀ-ÿ]{2,}")
+CEP_PATTERN = re.compile(r"^\d{5}-?\d{3}$")
 OUTPUT_DIR = Path(__file__).with_name("output")
 LATEST_JSON_FILENAME = "latest_leads.json"
 LATEST_CSV_FILENAME = "latest_leads.csv"
+
+
+def resolve_cep_to_city(cep: str) -> str | None:
+    """Resolve a Brazilian CEP to 'City - UF' via ViaCEP. Returns None on failure."""
+    if requests is None:
+        return None
+
+    normalized = cep.replace("-", "").strip()
+    if len(normalized) != 8 or not normalized.isdigit():
+        return None
+
+    try:
+        response = requests.get(
+            f"https://viacep.com.br/ws/{normalized}/json/",
+            timeout=5,
+            headers={"User-Agent": DEFAULT_BROWSER_USER_AGENT},
+        )
+        response.raise_for_status()
+        data = response.json()
+        if data.get("erro"):
+            return None
+        localidade = (data.get("localidade") or "").strip()
+        uf = (data.get("uf") or "").strip()
+        if localidade and uf:
+            return f"{localidade} - {uf}"
+        return localidade or None
+    except Exception:
+        return None
+
+
+def normalize_city_arg(raw_city: str) -> str:
+    """If raw_city looks like a CEP, resolve it to a city name. Otherwise return as-is."""
+    stripped = raw_city.strip()
+    if CEP_PATTERN.match(stripped):
+        resolved = resolve_cep_to_city(stripped)
+        if resolved:
+            print(f"- CEP {stripped} resolvido para: {resolved}")
+            return resolved
+        print(
+            f"[aviso] CEP {stripped} nao pode ser resolvido via ViaCEP. Usando o valor original.",
+            file=sys.stderr,
+        )
+    return stripped
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1924,13 +1968,14 @@ def main() -> int:
         parser.error("--max must be greater than 0")
 
     query = args.query.strip()
-    city = args.city.strip()
 
     if not query:
         parser.error("--query must not be empty")
 
-    if not city:
+    if not args.city.strip():
         parser.error("--city must not be empty")
+
+    city = normalize_city_arg(args.city)
 
     missing_env = validate_runtime_env(require_supabase=persist)
     if missing_env:
