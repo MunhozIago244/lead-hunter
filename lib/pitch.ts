@@ -77,6 +77,8 @@ export function buildPitchPrompt(lead: Lead) {
   return { system, user }
 }
 
+const PITCH_TIMEOUT_MS = 10_000
+
 export async function generatePitchForLead(lead: Lead) {
   if (!process.env.ANTHROPIC_API_KEY) {
     throw new Error('Missing ANTHROPIC_API_KEY.')
@@ -87,26 +89,31 @@ export async function generatePitchForLead(lead: Lead) {
   })
   const prompt = buildPitchPrompt(lead)
 
-  const message = await anthropic.messages.create({
-    model: PITCH_MODEL,
-    max_tokens: PITCH_MAX_TOKENS,
-    system: prompt.system,
-    messages: [
+  const abort = new AbortController()
+  const timeoutHandle = setTimeout(() => abort.abort(), PITCH_TIMEOUT_MS)
+
+  try {
+    const message = await anthropic.messages.create(
       {
-        role: 'user',
-        content: prompt.user,
+        model: PITCH_MODEL,
+        max_tokens: PITCH_MAX_TOKENS,
+        system: prompt.system,
+        messages: [{ role: 'user', content: prompt.user }],
       },
-    ],
-  })
+      { signal: abort.signal }
+    )
 
-  const pitch = message.content
-    .map((block) => (block.type === 'text' ? block.text : ''))
-    .join('\n')
-    .trim()
+    const pitch = message.content
+      .map((block) => (block.type === 'text' ? block.text : ''))
+      .join('\n')
+      .trim()
 
-  if (!pitch) {
-    throw new Error('Anthropic returned an empty pitch.')
+    if (!pitch) {
+      throw new Error('Anthropic returned an empty pitch.')
+    }
+
+    return pitch
+  } finally {
+    clearTimeout(timeoutHandle)
   }
-
-  return pitch
 }
