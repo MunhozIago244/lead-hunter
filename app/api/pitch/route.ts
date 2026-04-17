@@ -25,6 +25,19 @@ type PitchRequestBody = {
   leadId?: string
 }
 
+function buildPitchProviderFailureDetails(error: PitchProviderError) {
+  if (!error.attempts || error.attempts.length === 0) {
+    return `Provider "${error.provider}" failed with reason "${error.reason}".`
+  }
+
+  return error.attempts
+    .map(
+      (attempt) =>
+        `${attempt.provider}: ${attempt.reason}${attempt.recoverable ? ' (fallback ok)' : ''}`
+    )
+    .join(' | ')
+}
+
 export async function POST(request: NextRequest) {
   const authContext = await requireAuthenticatedRouteUser()
 
@@ -137,7 +150,11 @@ export async function POST(request: NextRequest) {
         { provider: error.provider, reason: error.reason, err: error.message },
         '[POST /api/pitch] Pitch provider unavailable'
       )
-      return apiError(503, 'Pitch generation is temporarily unavailable.')
+      return apiError(
+        503,
+        'Pitch generation is temporarily unavailable.',
+        buildPitchProviderFailureDetails(error)
+      )
     }
 
     if (

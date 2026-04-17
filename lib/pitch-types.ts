@@ -13,6 +13,12 @@ export type PitchGenerationResult = {
   provider: PitchProvider
 }
 
+export type PitchProviderAttempt = {
+  provider: PitchProvider
+  reason: PitchProviderErrorReason
+  recoverable: boolean
+}
+
 export type PitchProviderGenerator = (
   prompt: PitchPrompt,
   lead: Lead
@@ -32,6 +38,7 @@ type PitchProviderErrorOptions = {
   reason: PitchProviderErrorReason
   recoverable: boolean
   cause?: unknown
+  attempts?: PitchProviderAttempt[]
 }
 
 export class PitchProviderError extends Error {
@@ -39,6 +46,7 @@ export class PitchProviderError extends Error {
   reason: PitchProviderErrorReason
   recoverable: boolean
   cause?: unknown
+  attempts?: PitchProviderAttempt[]
 
   constructor({
     provider,
@@ -46,6 +54,7 @@ export class PitchProviderError extends Error {
     reason,
     recoverable,
     cause,
+    attempts,
   }: PitchProviderErrorOptions) {
     super(message)
     this.name = 'PitchProviderError'
@@ -53,5 +62,6 @@ export class PitchProviderError extends Error {
     this.reason = reason
     this.recoverable = recoverable
     this.cause = cause
+    this.attempts = attempts
   }
 }

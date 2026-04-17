@@ -3,6 +3,7 @@ import { generatePitchWithAnthropic } from '@/lib/pitch-anthropic'
 import { generatePitchWithOpenAI } from '@/lib/pitch-openai'
 import {
   PitchProviderError,
+  type PitchProviderAttempt,
   type PitchGenerationResult,
   type PitchPrompt,
   type PitchProvider,
@@ -152,6 +153,7 @@ export async function generatePitchForLead(
   const prompt = buildPitchPrompt(lead)
   const providers = resolvePitchProviderOrder()
   let lastError: unknown = null
+  const attempts: PitchProviderAttempt[] = []
 
   for (const [index, provider] of providers.entries()) {
     const startedAt = Date.now()
@@ -171,6 +173,11 @@ export async function generatePitchForLead(
       return { pitch, provider }
     } catch (error) {
       lastError = error
+      attempts.push({
+        provider,
+        reason: getPitchProviderErrorReason(error),
+        recoverable: shouldRetryWithFallback(error),
+      })
       logger.error(
         {
           provider,
@@ -191,7 +198,14 @@ export async function generatePitchForLead(
   }
 
   if (lastError instanceof PitchProviderError) {
-    throw lastError
+    throw new PitchProviderError({
+      provider: lastError.provider,
+      message: lastError.message,
+      reason: lastError.reason,
+      recoverable: lastError.recoverable,
+      cause: lastError.cause ?? lastError,
+      attempts,
+    })
   }
 
   throw new PitchProviderError({
@@ -200,5 +214,6 @@ export async function generatePitchForLead(
     reason: 'provider_unavailable',
     recoverable: true,
     cause: lastError,
+    attempts,
   })
 }
