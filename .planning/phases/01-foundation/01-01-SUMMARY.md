@@ -23,6 +23,7 @@ key_files:
     - lib/supabase/client.ts
     - lib/supabase/server.ts
     - scraper/requirements.txt
+    - scraper/scraper.py
     - README.md
   modified: []
 decisions:
@@ -30,6 +31,8 @@ decisions:
   - "Tailwind v4 via @import 'tailwindcss' in CSS — no tailwind.config.js required"
   - "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY env var name (not deprecated ANON_KEY)"
   - "tsconfig paths alias fixed to ./* (root) since app/ is at project root, not in src/"
+  - "Foundation now includes a real scraper bootstrap CLI so the documented command works before discovery is implemented"
+  - "Default create-next-app landing page replaced by a project-specific foundation status screen"
 metrics:
   duration: 20
   completed_date: "2026-04-16"
@@ -37,7 +40,7 @@ metrics:
 
 # Phase 01 Plan 01: Project Scaffold Summary
 
-**One-liner:** Next.js 15.3 App Router scaffold with TypeScript strict, Tailwind v4 CSS import, @supabase/ssr client helpers, and Python scraper skeleton.
+**One-liner:** Next.js 15.3 App Router scaffold with TypeScript strict, Tailwind v4 CSS import, @supabase/ssr client helpers, project-specific foundation screen, and a working Python scraper bootstrap CLI.
 
 ## What Was Built
 
@@ -48,6 +51,7 @@ metrics:
 - `app/globals.css` uses Tailwind v4 `@import "tailwindcss"` — no `@tailwind base` directives, no `tailwind.config.js`
 - `@supabase/supabase-js` and `@supabase/ssr` installed via npm
 - `npx tsc --noEmit` exits 0
+- `npm run typecheck` now wraps `next build && tsc --noEmit` so route-aware Next types are generated before the standalone TypeScript pass
 
 ### Task 2: Supabase client helpers, env template, scraper skeleton, README
 
@@ -56,6 +60,9 @@ metrics:
 - `.env.example` — documents all required keys: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `GOOGLE_MAPS_API_KEY`, `PAGESPEED_API_KEY`
 - `scraper/requirements.txt` — pinned Python deps: supabase==2.28.3, playwright==1.49.0, tf-playwright-stealth==2.0.2, requests==2.31.0, tqdm==4.66.0, python-dotenv==1.0.0, anthropic==0.96.0
 - `README.md` — step-by-step setup for both dashboard and scraper
+- `scraper/scraper.py` — foundation CLI bootstrap that validates args and required env vars so the documented command already works
+- `app/page.tsx` + `app/layout.tsx` + `app/globals.css` — project-branded foundation UI instead of the default create-next-app placeholder
+- `package.json` renamed from `tmpscaffold` to `lead-hunter`
 
 ## Deviations from Plan
 
@@ -95,4 +102,4 @@ metrics:
 
 ## Known Stubs
 
-None — this plan creates scaffold files only, no data-rendering components.
+- `scraper/scraper.py` currently acts as a bootstrap/smoke-test CLI. It validates flags and env vars, but Google Maps discovery itself belongs to phase 2.

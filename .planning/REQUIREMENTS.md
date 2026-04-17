@@ -16,70 +16,70 @@
 
 ### Scraper — Discovery
 
-- [ ] **DISC-01**: CLI accepts --query, --city, --max flags via argparse
-- [ ] **DISC-02**: Google Maps Places API (New) Text Search returns businesses for niche + city query
-- [ ] **DISC-03**: Each result extracts: name, address, phone, website URL, segment, city
-- [ ] **DISC-04**: Results deduplicated by name+city before saving (upsert on UNIQUE constraint)
-- [ ] **DISC-05**: Rate limiting with exponential backoff on Places API errors
-- [ ] **DISC-06**: Billing guard: Places API uses field masks to request only needed fields (avoids Pro SKU escalation)
+- [x] **DISC-01**: CLI accepts --query, --city, --max flags via argparse
+- [x] **DISC-02**: Google Maps Places API (New) Text Search returns businesses for niche + city query
+- [x] **DISC-03**: Each result extracts: name, address, phone, website URL, segment, city
+- [x] **DISC-04**: Results deduplicated by name+city before saving (upsert on UNIQUE constraint)
+- [x] **DISC-05**: Rate limiting with exponential backoff on Places API errors
+- [x] **DISC-06**: Billing guard: Places API uses field masks to request only needed fields (avoids Pro SKU escalation)
 
 ### Scraper — Analysis
 
-- [ ] **ANAL-01**: Companies without a site saved with has_site=false, zero scores, problem "Empresa sem presença digital"
-- [ ] **ANAL-02**: PageSpeed Insights API called with strategy=mobile for each site URL
-- [ ] **ANAL-03**: score_mobile and score_speed extracted from PSI response (0–100)
-- [ ] **ANAL-04**: Playwright headless opens each site and checks for WhatsApp button/link presence
-- [ ] **ANAL-05**: Playwright extracts OG tags and title meta tag for SEO score calculation (0–100)
-- [ ] **ANAL-06**: score_design computed via heuristic (custom font, images, non-default template detection)
-- [ ] **ANAL-07**: Up to 5 problems generated per company, ordered by impact
-- [ ] **ANAL-08**: Playwright detects CAPTCHA/block pages via page.title() check — marks lead scores as null rather than fabricating data
-- [ ] **ANAL-09**: Partial failures (PSI timeout, Playwright error) do not kill the run — lead saved with null scores and error logged
+- [x] **ANAL-01**: Companies without a site saved with has_site=false, zero scores, problem "Empresa sem presença digital"
+- [x] **ANAL-02**: PageSpeed Insights API called with strategy=mobile for each site URL
+- [x] **ANAL-03**: score_mobile and score_speed extracted from PSI response (0–100)
+- [x] **ANAL-04**: Playwright headless opens each site and checks for WhatsApp button/link presence
+- [x] **ANAL-05**: Playwright extracts OG tags and title/meta description signals for SEO score calculation (0–100)
+- [x] **ANAL-06**: score_design computed via heuristic (custom font, images, responsiveness, favicon, and freshness signals)
+- [x] **ANAL-07**: Up to 5 problems generated per company, ordered by impact
+- [x] **ANAL-08**: Playwright detects CAPTCHA/block pages via title/content/url checks — marks lead scores as null rather than fabricating data
+- [x] **ANAL-09**: Partial failures (PSI timeout, Playwright error) do not kill the run — lead saved with null scores and error logged
 
 ### Scraper — Persistence
 
-- [ ] **PERS-01**: Scraper connects to Supabase using service_role key
-- [ ] **PERS-02**: Connection validated at startup (fails fast with clear error if key invalid)
-- [ ] **PERS-03**: Leads upserted (not inserted) — re-running same query updates existing records
-- [ ] **PERS-04**: Progress bar shown during scraping via tqdm
-- [ ] **PERS-05**: Each processed company logged: name, scores obtained, save status
+- [x] **PERS-01**: Scraper connects to Supabase using service_role key
+- [x] **PERS-02**: Connection validated at startup (fails fast with clear error if key invalid)
+- [x] **PERS-03**: Leads upserted (not inserted) — re-running same query updates existing records
+- [x] **PERS-04**: Progress bar shown during scraping via tqdm
+- [x] **PERS-05**: Each processed company logged: name, scores obtained, save status
 
 ### Dashboard — Lead List
 
-- [ ] **LIST-01**: Dashboard shows leads fetched from Supabase via GET /api/leads
-- [ ] **LIST-02**: Leads filterable by: All / Critical (avg score < 40) / No site / Contacted
-- [ ] **LIST-03**: Text search filters leads by name in real time
-- [ ] **LIST-04**: Each list item shows: name, segment, status badge (color-coded)
-- [ ] **LIST-05**: Selected lead highlighted visually
-- [ ] **LIST-06**: Query params status, segment, city passed to GET /api/leads
+- [x] **LIST-01**: Dashboard shows leads fetched from Supabase via GET /api/leads
+- [x] **LIST-02**: Leads filterable by: All / Critical (avg score < 40) / No site / Contacted
+- [x] **LIST-03**: Text search filters leads by name in real time
+- [x] **LIST-04**: Each list item shows: name, segment, status badge (color-coded)
+- [x] **LIST-05**: Selected lead highlighted visually
+- [x] **LIST-06**: Query params status, segment, city passed to GET /api/leads
 
 ### Dashboard — Lead Detail
 
-- [ ] **DETL-01**: Lead detail panel shows: name, segment, city, site (external link)
-- [ ] **DETL-02**: Score grid (2×2) shows Mobile, Speed, SEO, Design scores with color coding (red <40, yellow 40–70, green >70)
-- [ ] **DETL-03**: Problems list shows up to 5 identified issues
-- [ ] **DETL-04**: Contact section shows phone and email
-- [ ] **DETL-05**: "Marcar como contatado" button calls PATCH /api/lead/[id] to update status
-- [ ] **DETL-06**: Loading states shown for all async actions
+- [x] **DETL-01**: Lead detail panel shows: name, segment, city, site (external link)
+- [x] **DETL-02**: Score grid (2×2) shows Mobile, Speed, SEO, Design scores with color coding (red <40, yellow 40–70, green >70)
+- [x] **DETL-03**: Problems list shows up to 5 identified issues
+- [x] **DETL-04**: Contact section shows phone and email
+- [x] **DETL-05**: "Marcar como contatado" button calls PATCH /api/lead/[id] to update status
+- [x] **DETL-06**: Loading states shown for all async actions
 
 ### Dashboard — Pitch
 
-- [ ] **PITCH-01**: PitchBox displays current pitch text or placeholder if not yet generated
-- [ ] **PITCH-02**: "Gerar pitch" button calls POST /api/pitch with lead_id
-- [ ] **PITCH-03**: Claude API called with exact prompt template (name, segment, city, has_site, problems) using claude-sonnet-4-20250514, max_tokens 300
-- [ ] **PITCH-04**: Generated pitch saved to leads.pitch in Supabase
-- [ ] **PITCH-05**: "Regerar" button regenerates and overwrites pitch
-- [ ] **PITCH-06**: "Copiar" button copies pitch to clipboard
-- [ ] **PITCH-07**: "WhatsApp" button opens wa.me deep link with encoded pitch in new tab
-- [ ] **PITCH-08**: "Email" button opens mailto link with subject and encoded pitch body
-- [ ] **PITCH-09**: Brazilian phone numbers normalized before WhatsApp link (9th-digit rule for area codes 11–28)
+- [x] **PITCH-01**: PitchBox displays current pitch text or placeholder if not yet generated
+- [x] **PITCH-02**: "Gerar pitch" button calls POST /api/pitch with lead_id
+- [x] **PITCH-03**: Claude API called with exact prompt template (name, segment, city, has_site, problems) using claude-sonnet-4-6, max_tokens 300
+- [x] **PITCH-04**: Generated pitch saved to leads.pitch in Supabase
+- [x] **PITCH-05**: "Regerar" button regenerates and overwrites pitch
+- [x] **PITCH-06**: "Copiar" button copies pitch to clipboard
+- [x] **PITCH-07**: "WhatsApp" button opens wa.me deep link with encoded pitch in new tab
+- [x] **PITCH-08**: "Email" button opens mailto link with subject and encoded pitch body
+- [x] **PITCH-09**: Brazilian phone numbers normalized before WhatsApp link (9th-digit rule for area codes 11–28)
 
 ### Dashboard — API Routes
 
-- [ ] **API-01**: GET /api/leads returns leads array ordered by created_at desc, filtered by optional query params
-- [ ] **API-02**: POST /api/pitch fetches lead, calls Claude API, saves pitch, returns { pitch: string }
-- [ ] **API-03**: PATCH /api/lead/[id] updates status, contact_channel, notes, or pitch fields
-- [ ] **API-04**: All routes handle errors with try/catch and appropriate HTTP status codes
-- [ ] **API-05**: Claude prompt wraps scraped data safely to prevent prompt injection
+- [x] **API-01**: GET /api/leads returns leads array ordered by created_at desc, filtered by optional query params
+- [x] **API-02**: POST /api/pitch fetches lead, calls Claude API, saves pitch, returns { pitch: string }
+- [x] **API-03**: PATCH /api/lead/[id] updates status, contact_channel, notes, or pitch fields
+- [x] **API-04**: All routes handle errors with try/catch and appropriate HTTP status codes
+- [x] **API-05**: Claude prompt wraps scraped data safely to prevent prompt injection
 
 ## v2 Requirements
 
@@ -123,52 +123,52 @@
 | FOUND-04 | Phase 1 | Complete |
 | FOUND-05 | Phase 1 | Complete |
 | FOUND-06 | Phase 1 | Complete |
-| DISC-01 | Phase 2 | Pending |
-| DISC-02 | Phase 2 | Pending |
-| DISC-03 | Phase 2 | Pending |
-| DISC-04 | Phase 2 | Pending |
-| DISC-05 | Phase 2 | Pending |
-| DISC-06 | Phase 2 | Pending |
-| ANAL-01 | Phase 3 | Pending |
-| ANAL-02 | Phase 3 | Pending |
-| ANAL-03 | Phase 3 | Pending |
-| ANAL-04 | Phase 3 | Pending |
-| ANAL-05 | Phase 3 | Pending |
-| ANAL-06 | Phase 3 | Pending |
-| ANAL-07 | Phase 3 | Pending |
-| ANAL-08 | Phase 3 | Pending |
-| ANAL-09 | Phase 3 | Pending |
-| PERS-01 | Phase 4 | Pending |
-| PERS-02 | Phase 4 | Pending |
-| PERS-03 | Phase 4 | Pending |
-| PERS-04 | Phase 4 | Pending |
-| PERS-05 | Phase 4 | Pending |
-| API-01 | Phase 5 | Pending |
-| API-02 | Phase 5 | Pending |
-| API-03 | Phase 5 | Pending |
-| API-04 | Phase 5 | Pending |
-| API-05 | Phase 5 | Pending |
-| LIST-01 | Phase 6 | Pending |
-| LIST-02 | Phase 6 | Pending |
-| LIST-03 | Phase 6 | Pending |
-| LIST-04 | Phase 6 | Pending |
-| LIST-05 | Phase 6 | Pending |
-| LIST-06 | Phase 6 | Pending |
-| DETL-01 | Phase 7 | Pending |
-| DETL-02 | Phase 7 | Pending |
-| DETL-03 | Phase 7 | Pending |
-| DETL-04 | Phase 7 | Pending |
-| DETL-05 | Phase 7 | Pending |
-| DETL-06 | Phase 7 | Pending |
-| PITCH-01 | Phase 8 | Pending |
-| PITCH-02 | Phase 8 | Pending |
-| PITCH-03 | Phase 8 | Pending |
-| PITCH-04 | Phase 8 | Pending |
-| PITCH-05 | Phase 8 | Pending |
-| PITCH-06 | Phase 8 | Pending |
-| PITCH-07 | Phase 8 | Pending |
-| PITCH-08 | Phase 8 | Pending |
-| PITCH-09 | Phase 8 | Pending |
+| DISC-01 | Phase 2 | Complete |
+| DISC-02 | Phase 2 | Complete |
+| DISC-03 | Phase 2 | Complete |
+| DISC-04 | Phase 2 | Complete |
+| DISC-05 | Phase 2 | Complete |
+| DISC-06 | Phase 2 | Complete |
+| ANAL-01 | Phase 3 | Complete |
+| ANAL-02 | Phase 3 | Complete |
+| ANAL-03 | Phase 3 | Complete |
+| ANAL-04 | Phase 3 | Complete |
+| ANAL-05 | Phase 3 | Complete |
+| ANAL-06 | Phase 3 | Complete |
+| ANAL-07 | Phase 3 | Complete |
+| ANAL-08 | Phase 3 | Complete |
+| ANAL-09 | Phase 3 | Complete |
+| PERS-01 | Phase 4 | Complete |
+| PERS-02 | Phase 4 | Complete |
+| PERS-03 | Phase 4 | Complete |
+| PERS-04 | Phase 4 | Complete |
+| PERS-05 | Phase 4 | Complete |
+| API-01 | Phase 5 | Complete |
+| API-02 | Phase 5 | Complete |
+| API-03 | Phase 5 | Complete |
+| API-04 | Phase 5 | Complete |
+| API-05 | Phase 5 | Complete |
+| LIST-01 | Phase 6 | Complete |
+| LIST-02 | Phase 6 | Complete |
+| LIST-03 | Phase 6 | Complete |
+| LIST-04 | Phase 6 | Complete |
+| LIST-05 | Phase 6 | Complete |
+| LIST-06 | Phase 6 | Complete |
+| DETL-01 | Phase 7 | Complete |
+| DETL-02 | Phase 7 | Complete |
+| DETL-03 | Phase 7 | Complete |
+| DETL-04 | Phase 7 | Complete |
+| DETL-05 | Phase 7 | Complete |
+| DETL-06 | Phase 7 | Complete |
+| PITCH-01 | Phase 8 | Complete |
+| PITCH-02 | Phase 8 | Complete |
+| PITCH-03 | Phase 8 | Complete |
+| PITCH-04 | Phase 8 | Complete |
+| PITCH-05 | Phase 8 | Complete |
+| PITCH-06 | Phase 8 | Complete |
+| PITCH-07 | Phase 8 | Complete |
+| PITCH-08 | Phase 8 | Complete |
+| PITCH-09 | Phase 8 | Complete |
 
 **Coverage:**
 - v1 requirements: 44 total
@@ -177,4 +177,4 @@
 
 ---
 *Requirements defined: 2026-04-16*
-*Last updated: 2026-04-16 after roadmap creation*
+*Last updated: 2026-04-16 after Phase 08 completion*

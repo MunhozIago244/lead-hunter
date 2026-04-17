@@ -2,368 +2,592 @@
 
 **Project:** lead-hunter
 **Researched:** 2026-04-16
-**Overall confidence:** HIGH (Next.js/Supabase patterns), MEDIUM (scraper patterns)
+**Overall confidence:** HIGH (repo state + roadmap alignment), MEDIUM (future scraper internals)
 
 ---
 
-## Component Map
+## Architecture Summary
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  SCRAPER PROCESS (Python 3.11+)                                 │
-│                                                                 │
-│  CLI Entry (argparse)                                           │
-│    └─► ScraperOrchestrator                                      │
-│          ├─► GoogleMapsClient      (Places API)                 │
-│          ├─► PageSpeedClient       (PSI API, free tier)         │
-│          ├─► PlaywrightAnalyzer    (headless browser)           │
-│          │     ├── screenshot                                   │
-│          │     ├── whatsapp_detection                           │
-│          │     ├── meta_tag_check                               │
-│          │     └── last_content_date                            │
-│          ├─► ScoreCalculator       (heuristic, pure fn)         │
-│          └─► SupabaseWriter        (supabase-py, upsert)        │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              │ writes to
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  SUPABASE (shared data layer)                                   │
-│                                                                 │
-│  Tables:                                                        │
-│    leads          (id, query, city, status, scores, problems,   │
-│                    contact_info, pitch, created_at, updated_at) │
-│    scrape_runs    (id, query, city, started_at, finished_at,    │
-│                    leads_found, errors)                         │
-│                                                                 │
-│  RLS: service_role key for scraper (bypasses RLS)              │
-│       anon key + policy for dashboard (scoped to owner)        │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              │ reads/mutates via
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  DASHBOARD (Next.js 15 App Router, TypeScript)                  │
-│                                                                 │
-│  Server Components (read-only, direct Supabase query)          │
-│    ├── /leads              (list with filters)                  │
-│    └── /leads/[id]         (lead detail + scores)              │
-│                                                                 │
-│  Server Actions (mutations from React components)              │
-│    ├── generatePitch()     (calls Claude API server-side)       │
-│    ├── updateLeadStatus()  (status state machine)              │
-│    └── savePitch()         (persists edited pitch to DB)       │
-│                                                                 │
-│  Client Components (interactivity only)                        │
-│    ├── LeadFilters         (filter bar, client state)          │
-│    ├── PitchEditor         (textarea + copy/send buttons)      │
-│    └── StatusSelector      (dropdown, calls Server Action)     │
-│                                                                 │
-│  Route Handlers (external-facing only)                         │
-│    └── (none needed for v1 — no webhooks or external callers)  │
-└─────────────────────────────────────────────────────────────────┘
-```
+lead-hunter is a three-part system:
 
-**What does NOT talk directly to what:**
-- Python scraper never calls Next.js — it only writes to Supabase
-- Next.js never calls the scraper — it only reads from Supabase
-- Client components never call Supabase directly — they go through Server Actions or read from Server Component props
-- Claude API is called only from Server Actions, never from the browser (keeps API key server-side)
+1. A Python CLI scraper discovers and analyzes local businesses.
+2. Supabase stores the shared lead record and acts as the integration boundary.
+3. A Next.js dashboard reads, updates, and enriches leads through internal API routes.
+
+The important architectural rule for v1 is separation of responsibilities:
+
+- The scraper talks to Google APIs, Playwright, Anthropic when needed, and Supabase.
+- The dashboard talks to Next.js route handlers, not directly to external services.
+- Supabase is the only shared data layer between scraper and dashboard.
+
+This keeps the system simple for a solo workflow and matches the current roadmap phases.
 
 ---
 
-## Data Flow
+## Current Reality
 
-### Scrape Flow (Python)
+Phase 1 is complete. The repository currently contains the foundation, not the full product:
 
-```
-User runs CLI
-  --query "restaurantes" --city "Curitiba" --max 30
-    │
-    ▼
-GoogleMapsClient.search(query, city, max)
-  → GET Places API → list of {name, address, website, phone}
-    │
-    ▼  (for each business, with semaphore limiting concurrency)
-PageSpeedClient.analyze(website_url)
-  → GET PageSpeed Insights API → {mobile_score, performance, seo}
-    │
-PlaywrightAnalyzer.analyze(website_url)
-  → headless browser → {screenshot_url, has_whatsapp, meta_tags, last_date}
-    │
-ScoreCalculator.score(pagespeed_data, playwright_data)
-  → pure function → {design_score, seo_score, speed_score, problems[]}
-    │
-    ▼
-SupabaseWriter.upsert(lead_data)
-  → INSERT ... ON CONFLICT (website_url) DO UPDATE
-  → uses service_role key (bypasses RLS)
-```
+- Next.js scaffold exists in `app/`
+- Supabase browser/server helpers exist in `lib/supabase/`
+- The `leads` schema exists in `supabase/migrations/`
+- Shared lead types exist in `types/lead.ts`
 
-### Dashboard Read Flow (Next.js)
+Implemented locally:
 
-```
-Browser navigates to /leads
-  │
-  ▼
-Server Component (runs on server at request time)
-  → createServerClient(supabase_url, anon_key, cookies())
-  → SELECT * FROM leads WHERE status != 'discarded' ORDER BY score DESC
-  → renders HTML with lead cards
-    │
-    ▼
-Browser receives full HTML (no loading spinner, no client fetch)
-  → Client Component hydrates filter bar (client state only)
-  → User filters → URL search params update → Server Component re-renders
-```
+- Python scraper runtime for discovery
+- Google Places API search with field mask, pagination, and backoff
+- Supabase upsert flow for discovered leads
+- no-site fallback enrichment and mobile PageSpeed analysis
+- Playwright heuristics for WhatsApp/meta/freshness signals plus blocked-site safeguards
+- ordered problems generation and sanitized scraper writes
+- Supabase startup validation and explicit preservation of user-owned fields on re-scrape
+- CLI reporting with trustworthy counts for extraction, analysis, and persistence failures
+- Next.js internal API routes for lead reads, lead updates, and pitch generation
+- Anthropic-backed prompt building with business data isolation inside `<business_data>`
+- Dashboard lead list UI at `/` backed by `GET /api/leads`
+- API-backed quick filters plus `status` / `segment` / `city` selects
+- Client-side free-text search and selected-lead highlight/preview state
+- Dashboard detail panel with site link, score grid, problems, contact data, and `PATCH /api/lead/[id]` status updates
+- Dashboard pitch box with `POST /api/pitch`, copy-to-clipboard, WhatsApp deep links, and email deep links
 
-### Pitch Generation Flow
+Still not implemented:
 
-```
-User clicks "Gerar Pitch" on /leads/[id]
-  │
-  ▼
-Client Component fires Server Action: generatePitch(leadId)
-  │
-  ▼
-Server Action (runs on server)
-  → fetch lead data from Supabase (service_role for internal mutations)
-  → build prompt with lead problems, scores, contact info
-  → POST anthropic API (claude-sonnet-4-20250514, max_tokens: 300)
-  → UPDATE leads SET pitch = result WHERE id = leadId
-  → return pitch text to client
-    │
-    ▼
-Client Component updates UI optimistically, shows pitch in textarea
-User edits → clicks "Salvar" → savePitch() Server Action
-User clicks "WhatsApp" → window.open(wa.me link) on client
-```
+- Live end-to-end verification with real Supabase rows, Anthropic credentials, and real outreach targets
 
-### Lead Status Update Flow
-
-```
-User selects new status in StatusSelector
-  │
-  ▼
-Client Component calls Server Action: updateLeadStatus(leadId, newStatus)
-  → validates transition (new→contacted→replied→closed or discarded)
-  → UPDATE leads SET status = newStatus, updated_at = now()
-  → revalidatePath('/leads') — forces Server Component cache invalidation
-```
+This document therefore describes the **target architecture for v1**, while staying faithful to what is actually in the repo today.
 
 ---
 
-## Recommended Patterns
+## System Map
 
-### Python Scraper
-
-**Async with bounded concurrency, not fully parallel.**
-
-Use `asyncio` + `httpx` for Google Maps and PageSpeed API calls.
-Use `asyncio.Semaphore(5)` to cap concurrent requests — PageSpeed free tier rate-limits aggressively (approximately 25 requests per 100 seconds).
-Use Playwright in sync mode inside an `asyncio.to_thread()` wrapper — Playwright's async API is available but adds complexity; sync in a thread pool is simpler and sufficient for this scale.
-
-```python
-# Pattern: bounded semaphore for rate limiting
-sem = asyncio.Semaphore(5)
-
-async def analyze_one(business, sem):
-    async with sem:
-        await asyncio.sleep(0.5)  # polite delay
-        pagespeed = await pagespeed_client.analyze(business.website)
-        playwright_data = await asyncio.to_thread(playwright_analyzer.analyze, business.website)
-        return build_lead(business, pagespeed, playwright_data)
+```text
+┌──────────────────────────────────────────────────────────────────────┐
+│ User: terminal workflow                                             │
+│  python scraper/scraper.py --query "...\" --city \"...\" --max 20     │
+└──────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│ Python Scraper (`scraper/scraper.py`)                               │
+│                                                                      │
+│ Responsibilities:                                                    │
+│ - parse CLI flags                                                    │
+│ - search Google Maps Places API                                     │
+│ - analyze websites with PageSpeed + Playwright                      │
+│ - compute heuristic problems/scores                                 │
+│ - upsert leads into Supabase                                         │
+└──────────────────────────────────────────────────────────────────────┘
+             │                 │                    │
+             │                 │                    │
+             ▼                 ▼                    ▼
+     Google Places API   PageSpeed API        Playwright browser
+             \                 |                    /
+              \                |                   /
+               \               |                  /
+                └──────────────┴─────────────────┘
+                                │
+                                ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│ Supabase                                                            │
+│                                                                      │
+│ Canonical table in v1: `leads`                                       │
+│ - scraper writes analytical fields                                   │
+│ - dashboard reads all visible fields                                 │
+│ - dashboard updates user-owned fields                                │
+└──────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│ Next.js Dashboard                                                    │
+│                                                                      │
+│ UI layer                                                             │
+│ - dashboard page shell                                               │
+│ - lead list                                                          │
+│ - lead detail                                                        │
+│ - pitch box                                                          │
+│                                                                      │
+│ Internal API layer                                                   │
+│ - GET /api/leads                                                     │
+│ - PATCH /api/lead/[id]                                               │
+│ - POST /api/pitch                                                    │
+└──────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+                          Anthropic API
+                         (pitch generation)
 ```
 
-**Retry with exponential backoff + jitter for external APIs.**
+### Direct communication rules
 
-Google Maps and PageSpeed both return 429 on overload. Retry up to 3 times with delays of 2^attempt + random(0, 1) seconds. Do not retry Playwright failures (site is just broken — log and skip).
-
-**Progress with tqdm.**
-
-Wrap the business list with `tqdm(businesses, desc="Analisando")` before the async gather. Update manually inside the semaphore block with `pbar.update(1)`.
-
-**Deduplication via upsert on website_url.**
-
-The scraper never checks if a lead exists before inserting. Use Supabase upsert with `on_conflict="website_url"` and update only the analytical fields, not `status` or `pitch` (those are user-owned).
-
-```python
-supabase.table("leads").upsert(
-    lead_data,
-    on_conflict="website_url",
-    # Do NOT overwrite user data on re-scrape
-    ignoreDuplicates=False
-).execute()
-```
-
-### Next.js Dashboard
-
-**Server Components for all reads. Server Actions for all mutations.**
-
-Do not create Route Handlers for internal use. They add a network round-trip and lose type safety. Route Handlers are only needed when an external caller (webhook, mobile app, third party) needs to hit an HTTP endpoint — none exist in v1.
-
-**Supabase client creation pattern:**
-
-- Server Components: `createServerClient()` from `@supabase/ssr` using `cookies()` from `next/headers`
-- Server Actions: same `createServerClient()` — they run on the server and have access to cookies
-- Never instantiate `createBrowserClient()` in a Server Component
-
-**Caching strategy:**
-
-Server Component reads are cached by Next.js by default. After any mutation (status update, pitch save), call `revalidatePath('/leads')` or `revalidatePath('/leads/' + leadId)` inside the Server Action. This is the recommended invalidation pattern for App Router — no need for manual cache keys.
-
-**Error handling for Claude API:**
-
-Wrap the Anthropic API call in a try/catch inside the Server Action. Return a typed result union:
-
-```typescript
-type PitchResult =
-  | { ok: true; pitch: string }
-  | { ok: false; error: "rate_limit" | "api_error" | "timeout" };
-```
-
-The Client Component reads this result and shows an inline error message without crashing. Do not throw from Server Actions — it triggers React's error boundary at the wrong level.
-
-### Supabase / RLS
-
-**For a solo-user tool, RLS adds complexity for near-zero security gain.** The scraper runs locally. The dashboard is not publicly deployed in v1. The pragmatic choice is:
-
-- Enable RLS on all tables (good habit, keeps options open)
-- Create a single permissive policy: `USING (true)` for all operations on the authenticated role
-- Scraper uses `service_role` key (env var, never committed) — bypasses RLS entirely
-- Dashboard uses `anon` key with Supabase Auth (a single email/password user) — goes through RLS
-
-If you add auth later (e.g., deploy to Vercel), change the policy to `USING (auth.uid() = owner_id)` with a fixed owner_id — one-line change.
-
-```sql
--- Permissive for now, swap when deploying publicly
-CREATE POLICY "owner can do everything"
-ON leads
-FOR ALL
-USING (true)
-WITH CHECK (true);
-```
+- The scraper does **not** call Next.js.
+- The browser does **not** call Google APIs, PageSpeed, Playwright, or Anthropic directly.
+- The browser does **not** write to Supabase directly for v1 mutations.
+- Supabase is the only shared integration point between scraper and dashboard.
 
 ---
 
-## Build Order
+## Canonical File Responsibilities
 
-Dependencies flow strictly downward. Each phase produces something the next one consumes.
+These are the intended architectural responsibilities for the codebase as it evolves.
 
+```text
+app/
+  page.tsx                     -> dashboard shell / initial route
+  api/leads/route.ts           -> filtered lead reads
+  api/lead/[id]/route.ts       -> lead PATCH updates
+  api/pitch/route.ts           -> pitch generation + persistence
+
+components/dashboard/          -> interactive UI units
+  lead-list.tsx
+  lead-filters.tsx
+  lead-detail.tsx
+  pitch-box.tsx
+  status-select.tsx
+
+lib/supabase/
+  client.ts                    -> browser client
+  server.ts                    -> request-scoped server client
+  admin.ts                     -> planned server-only service-role client
+
+scraper/
+  scraper.py                   -> CLI entrypoint + orchestration
+
+types/
+  lead.ts                      -> canonical TypeScript data contract
+
+supabase/migrations/
+  *.sql                        -> schema source of truth
 ```
-Phase 1: Foundation
-  ├── Supabase project + schema (leads, scrape_runs tables)
-  ├── RLS policies + both keys stored in .env
-  └── shared TypeScript types (generated from Supabase schema)
-        ↓ (schema must exist before anything queries it)
 
-Phase 2: Scraper Core
-  ├── Google Maps client + deduplication upsert
-  ├── PageSpeed client + async rate limiting
-  ├── Playwright analyzer
-  ├── Score calculator (pure function, unit testable)
-  └── CLI wiring with tqdm progress
-        ↓ (DB must have data before dashboard is useful)
+Notes:
 
-Phase 3: Dashboard Read Layer
-  ├── Next.js project scaffold (App Router, Supabase SSR)
-  ├── /leads page — Server Component reading from DB
-  ├── Lead detail page /leads/[id]
-  └── Filter bar (client component, URL params)
-        ↓ (read layer must work before adding mutations)
-
-Phase 4: Actions + Pitch Generation
-  ├── generatePitch() Server Action (Claude API)
-  ├── savePitch() Server Action
-  ├── updateLeadStatus() Server Action
-  └── WhatsApp / email deep links (client-side only)
-```
-
-**Why this order:**
-- You cannot build the dashboard without data; you cannot have data without the schema.
-- The scraper is purely additive — it only writes. It can be extended without touching the dashboard.
-- Pitch generation depends on lead data existing, so it must come after the read layer validates the schema is correct.
-- Mutations come last because they require the read layer to verify state before and after.
+- `components/dashboard/lead-list-dashboard.tsx`, `components/dashboard/lead-status-badge.tsx`, and `lib/supabase/admin.ts` are now present.
+- `components/dashboard/lead-detail-panel.tsx` and `components/dashboard/lead-score-card.tsx` are now present.
+- `components/dashboard/lead-pitch-box.tsx` and `lib/outreach.ts` are now present.
+- `scraper/scraper.py` remains intentionally consolidated in one file while the scraper flow stabilizes.
 
 ---
 
-## Trade-offs
+## Data Model Ownership
 
-### 1. Sync CLI vs Background Queue for the Scraper
+The `leads` table is the core contract. Architectural ownership matters because re-scrapes must not overwrite user work.
 
-| Option | Sync CLI (recommended) | Background Queue (Celery + Redis) |
-|--------|------------------------|-----------------------------------|
-| Complexity | Low — one Python process | High — broker, worker, result backend |
-| Visibility | tqdm in terminal | Requires separate monitoring UI |
-| Failure recovery | Re-run CLI | Automatic retry |
-| Trigger from dashboard | Not possible | Possible via HTTP |
-| Right for solo tool? | Yes | No — massive over-engineering |
+### Scraper-owned fields
 
-**Decision: sync CLI.** The user runs the scraper deliberately before working in the dashboard. No need for background processing. If 30 leads takes 5 minutes, that is acceptable. A progress bar provides all the feedback needed.
+These are written and refreshed by the scraper:
 
-The one limitation: you cannot trigger scraping from the dashboard UI. This is explicitly acceptable — the requirements specify a CLI tool. If this changes in v2, add a `/api/scrape` Route Handler that shells out to the Python process or moves to a queue at that point.
+- `name`
+- `segment`
+- `city`
+- `address`
+- `phone`
+- `email`
+- `site`
+- `has_site`
+- `score_mobile`
+- `score_speed`
+- `score_seo`
+- `score_design`
+- `problems`
 
-### 2. Server Components + Server Actions vs Pure API Routes
+### User-owned fields
 
-| Option | Server Components + Actions (recommended) | API Route Handlers |
-|--------|-------------------------------------------|--------------------|
-| Type safety | End-to-end, no serialization gap | Manual, requires shared types |
-| Bundle size | Server code stays on server | Same |
-| External access | Not possible | Possible |
-| Form handling | Built-in React integration | Manual fetch() |
-| Caching | revalidatePath() native | Manual cache invalidation |
-| Right for internal app? | Yes | No — adds unnecessary indirection |
+These are created or updated from the dashboard:
 
-**Decision: Server Actions for all mutations.** The dashboard has no external callers in v1. Every mutation is triggered from within the React component tree. Server Actions give type-safe, co-located mutation functions with native cache invalidation. Add Route Handlers only if you later need a webhook (e.g., WhatsApp delivery status callback).
+- `pitch`
+- `status`
+- `contact_channel`
+- `notes`
 
-### 3. Supabase anon key in dashboard vs service_role key
+### Shared system fields
 
-| Option | anon key + RLS | service_role key |
-|--------|----------------|------------------|
-| Correct for server-side? | Yes (with auth) | Yes, but risky |
-| Accidentally leaks to client? | Low risk (anon key is public by design) | HIGH risk — bypasses all RLS |
-| Multi-user ready? | Yes | No |
+- `id`
+- `created_at`
+- `updated_at`
 
-**Decision: anon key for the dashboard, service_role only in the scraper.** Even though this is a single-user tool, the service_role key should never be inside a Next.js app because build-time errors, client bundle leaks, or misconfigured Server Actions could expose it. The anon key with a permissive RLS policy gives the same access with far less risk.
+### Upsert rule
 
-### 4. Playwright sync vs async in the scraper
+When the scraper reprocesses an existing business, it should update scraper-owned fields only. It must never overwrite `pitch`, `status`, `contact_channel`, or `notes`.
 
-| Option | Playwright sync (recommended) | Playwright async |
-|--------|-------------------------------|------------------|
-| API clarity | Simple, no async/await overhead | Consistent with rest of async code |
-| Runs in asyncio loop | Via asyncio.to_thread() | Direct |
-| Debugging | Simpler stack traces | More complex |
-| Performance difference | Negligible for this scale | Negligible |
-
-**Decision: Playwright sync API wrapped in `asyncio.to_thread()`.** The scraper launches one Playwright browser and runs site analysis sequentially per site. Parallelizing Playwright across 30 sites simultaneously would consume 30x memory and likely trigger bot detection on target sites. Sequential sync in a thread is cleaner and safer.
+This rule is one of the key architectural boundaries of the project.
 
 ---
 
-## Error Boundary Map
+## Read and Write Paths
 
-```
-External API         Failure Mode              Handling
-─────────────────────────────────────────────────────────────
-Google Maps API      429 rate limit            retry 3x exponential backoff
-                     0 results                 log warning, continue
-                     network timeout           retry 2x, then skip query
+## 1. Scraper Flow
 
-PageSpeed API        429 rate limit            retry 3x with 60s ceiling
-                     site unreachable          score = null, mark "unanalyzed"
-                     malformed response        parse defensively, fallback 0
-
-Playwright           site timeout              mark "unanalyzed", log URL
-                     JS crash in page          catch, continue to next step
-                     screenshot fails          skip screenshot, continue
-
-Claude API           rate limit (429)          return { ok: false, error: "rate_limit" }
-                     API error (5xx)           return { ok: false, error: "api_error" }
-                     timeout                   return { ok: false, error: "timeout" }
-                     (never throw — Server Actions catch at wrong level)
-
-Supabase             connection error          surface to CLI as fatal, exit 1
-                     upsert conflict           handled by ON CONFLICT clause
-                     RLS violation             would indicate wrong key config
+```text
+CLI args
+  -> normalize query/city/max
+  -> Google Places search
+  -> normalize each business into lead-shaped data
+  -> if site exists:
+       -> PageSpeed analysis
+       -> Playwright analysis
+       -> score/problem calculation
+  -> if site does not exist:
+       -> has_site = false
+       -> standard no-presence problem
+  -> Supabase upsert by (name, city)
+  -> log result + update progress bar
 ```
 
-The key principle: **partial failures must not abort the full scrape run.** If PageSpeed fails for one site, log it and continue to the next. The lead still gets saved with `pagespeed_score = null`. The dashboard should render gracefully when scores are null (show "N/A" not crash).
+Architectural intent:
+
+- Discovery, analysis, and persistence remain in the scraper process.
+- Partial failures are tolerated. A single bad site must not abort the full run.
+- Null scores are valid state when a site is unreachable or blocked.
+
+## 2. Dashboard Read Flow
+
+```text
+Browser opens dashboard
+  -> client dashboard requests GET /api/leads
+  -> route handler reads from Supabase
+  -> returns JSON array of leads
+  -> UI renders list, filters, and selected lead
+```
+
+Why API routes for reads in v1:
+
+- The roadmap explicitly defines `GET /api/leads` as the canonical read interface.
+- It creates one stable contract for the UI, later exports, and any future automation.
+- It keeps filter parsing and data shaping in one place.
+
+Current implementation note:
+
+- quick operational filters and select filters call `GET /api/leads`
+- free-text name search runs in the client after data load to avoid a request per keystroke
+
+## 3. Lead Update Flow
+
+```text
+User changes status / notes / contact channel
+  -> client sends PATCH /api/lead/[id]
+  -> route validates payload against LeadUpdate shape
+  -> route updates only user-owned columns
+  -> route returns updated lead or success response
+  -> client refreshes local state
+```
+
+Current implementation note:
+
+- phase 7 currently uses this path for the "Marcar como contatado" action
+- the returned lead is merged into local dashboard state so the badge changes without a full reload
+
+## 4. Pitch Generation Flow
+
+```text
+User clicks "Gerar pitch"
+  -> client sends POST /api/pitch with lead_id
+  -> route loads lead from Supabase
+  -> route sanitizes scraped content
+  -> route builds Claude prompt
+  -> route calls Anthropic
+  -> route persists `pitch` to Supabase
+  -> route returns { pitch }
+  -> client displays pitch and enables copy/send actions
+```
+
+Pitch generation stays in the Next.js server layer because:
+
+- the Anthropic key must never reach the browser
+- prompt construction is sensitive logic
+- the generated pitch must be saved atomically with the request
+
+Current implementation note:
+
+- copy, WhatsApp, and email actions are derived locally from the persisted pitch text already stored in the selected lead
+- WhatsApp links normalize Brazilian numbers before building the `wa.me` URL
+
+---
+
+## API Surface
+
+The v1 dashboard is built around three internal endpoints.
+
+### `GET /api/leads`
+
+Purpose:
+
+- list leads for the dashboard
+- support filtering by status, segment, city, and search term
+
+Response shape:
+
+- array of `Lead`
+
+Responsibilities:
+
+- parse query params
+- map filter shortcuts such as "critical" or "no site" into DB filters
+- order records predictably for the UI
+
+### `PATCH /api/lead/[id]`
+
+Purpose:
+
+- update mutable user-owned lead fields
+
+Allowed fields:
+
+- `status`
+- `contact_channel`
+- `notes`
+- `pitch`
+
+Responsibilities:
+
+- reject unknown fields
+- preserve scraper-owned data
+- return structured 400 / 404 / 500 errors
+
+### `POST /api/pitch`
+
+Purpose:
+
+- generate or regenerate a pitch for one lead
+
+Responsibilities:
+
+- load the lead
+- sanitize untrusted scraped data before prompt construction
+- call Anthropic with the pinned model
+- persist the generated pitch
+- return `{ pitch: string }`
+
+---
+
+## Security Boundaries
+
+The current repo is a solo internal tool, but the architecture should still be explicit about trust boundaries.
+
+### Browser
+
+The browser is untrusted. It may:
+
+- read lead data through the dashboard API
+- submit update requests to approved endpoints
+
+It must never receive:
+
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `ANTHROPIC_API_KEY`
+- raw external API credentials for Places or PageSpeed
+
+### Scraper
+
+The scraper is trusted server-side code. It can use:
+
+- `SUPABASE_SERVICE_ROLE_KEY`
+- Google API keys
+- Anthropic key if pitch generation is ever moved into the scraper
+
+### Next.js route handlers
+
+These are the controlled mutation boundary for dashboard writes.
+
+- Read routes can use the existing server Supabase helper.
+- Mutation routes should use a server-only admin client backed by `SUPABASE_SERVICE_ROLE_KEY`, because the current RLS policy only grants anon read access.
+
+Important caveat:
+
+- This is acceptable for a local/internal v1 tool.
+- If the dashboard is deployed publicly, auth must be added before exposing mutation routes.
+
+---
+
+## Supabase Architecture
+
+Current schema truth lives in:
+
+- `supabase/migrations/20260416000000_create_leads_table.sql`
+- `types/lead.ts`
+
+### Current table design
+
+The current architecture uses a single `leads` table for v1.
+
+This is the right call for now because:
+
+- one lead is the main unit of work
+- the scraper and dashboard both center on the same record
+- a single-table design minimizes migration and UI complexity
+
+### Deferred tables
+
+Tables such as `scrape_runs`, `settings`, or `activity_log` are deliberately deferred.
+
+They may be added later if one of these becomes true:
+
+- scrape observability becomes important
+- reusable user profile/social proof is needed for prompts
+- audit history becomes a real operational need
+
+They are not required for the first working MVP.
+
+---
+
+## Error Handling Model
+
+The architecture assumes failures are local and recoverable whenever possible.
+
+### Scraper failures
+
+- Google API throttling: retry with backoff
+- PageSpeed timeout: save lead with null scores and continue
+- Playwright blocked page: mark analysis as unavailable and continue
+- Supabase connection failure: fail fast before long runs
+
+### Dashboard failures
+
+- malformed request: `400`
+- lead not found: `404`
+- unexpected integration error: `500`
+
+### UI behavior
+
+- null scores render as "N/A", not as zero unless the business truly has no site
+- pitch errors show inline feedback
+- lead updates should not blank the whole page
+
+---
+
+## Recommended Implementation Order
+
+This architecture maps directly to the roadmap:
+
+1. Foundation
+   - already done: schema, types, Supabase helpers
+2. Scraper Discovery
+   - CLI, Places lookup, normalization
+3. Scraper Analysis
+   - PageSpeed, Playwright, heuristic scoring
+4. Scraper Persistence
+   - upsert behavior, progress, resilience
+5. Dashboard API Routes
+   - `/api/leads`, `/api/lead/[id]`, `/api/pitch`
+6. Dashboard Lead List
+   - list UI, filters, selection
+7. Dashboard Lead Detail
+   - score grid, problems, contact info, status update
+8. Dashboard Pitch
+   - generation, copy, WhatsApp, email
+
+Why this order:
+
+- The scraper must exist before the dashboard has real data.
+- The API layer must exist before the UI can depend on stable contracts.
+- Pitch generation should come after the read/update flows are already trustworthy.
+
+---
+
+## Architectural Decisions
+
+### 1. Use API routes as the dashboard contract
+
+Decision:
+
+- Use `GET /api/leads`, `PATCH /api/lead/[id]`, and `POST /api/pitch` as canonical interfaces.
+
+Why:
+
+- This matches the roadmap and requirements exactly.
+- It keeps UI state management decoupled from raw DB queries.
+- It provides a clean future seam for exports, automation, or external callers.
+
+### 2. Keep scraper and dashboard decoupled
+
+Decision:
+
+- The scraper writes to Supabase directly instead of calling the dashboard API.
+
+Why:
+
+- fewer moving parts
+- no need to run both systems to scrape
+- easier CLI iteration and debugging
+
+### 3. Keep the scraper in one file until it hurts
+
+Decision:
+
+- Start with `scraper/scraper.py` as one orchestrated file.
+
+Why:
+
+- faster to ship
+- fewer abstractions before behavior stabilizes
+- planned phases can still split the file later if it becomes noisy
+
+### 4. Preserve user-owned fields on re-scrape
+
+Decision:
+
+- Re-scraping refreshes analytical data only.
+
+Why:
+
+- status, notes, and pitch are user work
+- overwriting them would break the tool's operational value
+
+### 5. Split filtering between server and client
+
+Decision:
+
+- API-backed filters handle operational slices such as critical / no-site / contacted plus `status`, `segment`, and `city`
+- free-text name search stays client-side
+
+Why:
+
+- operational filters need canonical backend behavior and scale better as the dataset grows
+- keystroke search should feel immediate and should not spam the API
+
+### 6. Keep selected-lead detail local to the dashboard tree
+
+Decision:
+
+- the list owns the selected lead id and passes the resolved lead into a local detail panel
+- mutations return an updated lead object that is merged into the in-memory list
+
+Why:
+
+- this keeps phase 7 simple without introducing a second detail-fetch endpoint
+- the current API surface already returns everything needed for v1 detail rendering
+
+### 7. Derive send actions in the client after pitch persistence
+
+Decision:
+
+- pitch generation remains server-side, but `copy`, `mailto`, and `wa.me` actions are built locally from the saved pitch text
+
+Why:
+
+- no extra route is needed for deterministic send links
+- the browser is the right place to open clipboard and deep-link actions
+- the single source of truth for the text stays in `leads.pitch`
+
+---
+
+## Open Questions
+
+These do not block the architecture, but they should be revisited during implementation:
+
+- Whether `app/page.tsx` becomes the dashboard directly or redirects to `/leads`
+- Whether pitch prompt settings need a future `settings` table
+- Whether `(name, city)` remains sufficient deduplication or should later move to `google_place_id`
+
+---
+
+## Bottom Line
+
+The architecture for v1 is:
+
+- one Python CLI scraper
+- one Supabase `leads` table as the shared contract
+- one Next.js dashboard using internal API routes
+- one strict ownership rule between scraper-managed and user-managed fields
+
+That is enough architecture to ship a useful MVP without over-engineering the repo.

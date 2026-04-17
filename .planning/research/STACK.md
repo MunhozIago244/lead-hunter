@@ -119,7 +119,7 @@ No need for residential proxies or CAPTCHA solvers for this use case.
 | Technology | Version | Purpose | Why |
 |------------|---------|---------|-----|
 | anthropic (Python SDK) | 0.96.0 | Pitch generation | Latest stable (April 16, 2026). Used in Python scraper OR triggered from Next.js API route. |
-| Model | `claude-sonnet-4-20250514` | Pitch text generation | Specified by user. Note: this model is **deprecated** and will be retired June 15, 2026. It still works until then. For post-June production use, migrate to `claude-sonnet-4-6`. Both are identical in pricing ($3/MTok input, $15/MTok output). |
+| Model | `claude-sonnet-4-6` | Pitch text generation | Specified by user. Note: this model is **deprecated** and will be retired June 15, 2026. It still works until then. For post-June production use, migrate to `claude-sonnet-4-6`. Both are identical in pricing ($3/MTok input, $15/MTok output). |
 
 **Streaming vs non-streaming for 300-token pitches:**
 
@@ -175,7 +175,7 @@ tailwindcss: 4.x
 @supabase/ssr: latest
 ```
 
-**Model ID to use now:** `claude-sonnet-4-20250514`
+**Model ID to use now:** `claude-sonnet-4-6`
 **Model ID to migrate to before June 15, 2026:** `claude-sonnet-4-6`
 
 ---
@@ -187,7 +187,7 @@ tailwindcss: 4.x
 | Next.js 15 + @supabase/ssr pattern | HIGH | Official Supabase docs (supabase.com/docs) | Two-client pattern (createBrowserClient / createServerClient) is current and documented |
 | Supabase-py version (2.28.3) | HIGH | PyPI direct fetch | Confirmed April 2026 |
 | Anthropic SDK version (0.96.0) | HIGH | PyPI direct fetch | Confirmed April 16, 2026 |
-| Claude model IDs | HIGH | Official Anthropic docs (platform.claude.com) | `claude-sonnet-4-20250514` confirmed as legacy/deprecated but functional until June 15, 2026 |
+| Claude model IDs | HIGH | Official Anthropic docs (platform.claude.com) | `claude-sonnet-4-6` confirmed as legacy/deprecated but functional until June 15, 2026 |
 | tf-playwright-stealth v2 API | MEDIUM | PyPI + multiple scraping blogs | Original package abandoned; tf fork is maintained. v2 API change from v1 confirmed across multiple sources. |
 | Places API (New) migration | HIGH | Google official docs (March 2025 billing changes) | Legacy disabled for new projects from March 1, 2025 — confirmed |
 | PageSpeed Insights rate limits | MEDIUM | Google docs + community reports | Official limit (25k/day with key) is HIGH confidence. Undocumented per-IP throttling is MEDIUM — reported but not officially documented. |

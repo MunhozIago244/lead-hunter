@@ -283,7 +283,7 @@ The pitch generation prompt includes business name, address, problems list, scor
 - Cap each field sent to Claude: business name (100 chars), problems list (5 items, 80 chars each), page snippet (200 chars).
 - Always specify `max_tokens=350` (slight buffer above the 300-token pitch target) to prevent runaway generation costs.
 - Handle `anthropic.BadRequestError` (context too long) and `anthropic.APIStatusError` (rate limit) explicitly.
-- The `claude-sonnet-4-20250514` model has a 200K token context window, so input length is not realistically a risk — output runaway is.
+- The `claude-sonnet-4-6` model has a 200K token context window, so input length is not realistically a risk — output runaway is.
 
 **Phase at risk:** Next.js API route or Python script calling Claude.
 

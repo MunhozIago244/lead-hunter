@@ -13,13 +13,13 @@ lead-hunter is built in 8 phases that follow the natural data flow: foundation s
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Supabase schema and TypeScript types that the entire system shares (completed 2026-04-16)
-- [ ] **Phase 2: Scraper Discovery** - CLI that queries Google Maps and extracts raw business data
-- [ ] **Phase 3: Scraper Analysis** - PageSpeed + Playwright site analysis producing scores and problems
-- [ ] **Phase 4: Scraper Persistence** - Supabase upsert, deduplication, progress reporting, and resilience
-- [ ] **Phase 5: Dashboard API Routes** - Next.js API layer for leads, pitch generation, and lead updates
-- [ ] **Phase 6: Dashboard Lead List** - Left panel with lead list, filters, and search
-- [ ] **Phase 7: Dashboard Lead Detail** - Right panel with scores, problems, contact info, and status update
-- [ ] **Phase 8: Dashboard Pitch** - Pitch generation, copy, WhatsApp, and email send actions
+- [x] **Phase 2: Scraper Discovery** - CLI that queries Google Maps and extracts raw business data (implemented locally 2026-04-16)
+- [x] **Phase 3: Scraper Analysis** - PageSpeed + Playwright site analysis producing scores and problems (implemented locally 2026-04-16)
+- [x] **Phase 4: Scraper Persistence** - Supabase upsert, deduplication, progress reporting, and resilience (implemented locally 2026-04-16)
+- [x] **Phase 5: Dashboard API Routes** - Next.js API layer for leads, pitch generation, and lead updates (implemented locally 2026-04-16)
+- [x] **Phase 6: Dashboard Lead List** - Left panel with lead list, filters, and search (implemented locally 2026-04-16)
+- [x] **Phase 7: Dashboard Lead Detail** - Right panel with scores, problems, contact info, and status update (implemented locally 2026-04-16)
+- [x] **Phase 8: Dashboard Pitch** - Pitch generation, copy, WhatsApp, and email send actions (implemented locally 2026-04-16)
 
 ## Phase Details
 
@@ -52,8 +52,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — CLI scaffold, Places API (New) Text Search with field mask, result extraction to leads schema
-- [ ] 02-02-PLAN.md — Pagination (nextPageToken), exponential backoff, Supabase upsert, tqdm progress, summary output
+- [x] 02-01-PLAN.md — CLI scaffold, Places API (New) Text Search with field mask, result extraction to leads schema
+- [x] 02-02-PLAN.md — Pagination (nextPageToken), exponential backoff, Supabase upsert, tqdm progress, summary output
 
 ### Phase 3: Scraper Analysis
 **Goal**: Each discovered business has quantified scores and a list of identified problems
@@ -65,7 +65,11 @@ Plans:
   3. Playwright check correctly detects WhatsApp button presence and OG/title tags for SEO score
   4. A CAPTCHA/blocked site saves null scores rather than fabricated data
   5. A PSI timeout or Playwright crash does not stop the run — lead is saved with null scores and error logged
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [x] 03-01-PLAN.md — PageSpeed mobile analysis, no-site fallback defaults, and score field enrichment on leads
+- [x] 03-02-PLAN.md — Playwright analysis, WhatsApp/meta checks, design heuristics, problems list, and partial-failure handling
 
 ### Phase 4: Scraper Persistence
 **Goal**: Scraped leads are reliably saved to Supabase with progress feedback and graceful error handling
@@ -76,7 +80,11 @@ Plans:
   2. Running the same query twice updates existing records rather than creating duplicates
   3. A tqdm progress bar is visible while scraping runs
   4. Each processed company prints its name, scores obtained, and save status to the terminal
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [x] 04-01-PLAN.md — Supabase startup validation, persistence guards, and separation of scraper-owned vs user-owned fields
+- [x] 04-02-PLAN.md — Execution reporting, partial-failure accounting, and hardened CLI summary/output workflow
 
 ### Phase 5: Dashboard API Routes
 **Goal**: Next.js API routes serve leads data, generate pitches via Claude, and accept lead updates
@@ -88,7 +96,11 @@ Plans:
   3. PATCH /api/lead/[id] updates status, contact_channel, notes, or pitch without overwriting other fields
   4. All three routes return appropriate HTTP error codes (400, 404, 500) with error messages on failure
   5. Claude prompt construction does not allow lead data to escape the prompt template boundaries
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [x] 05-01-PLAN.md — Supabase admin client, uncached JSON helpers, GET /api/leads, PATCH /api/lead/[id]
+- [x] 05-02-PLAN.md — Anthropic SDK integration, prompt sanitization, and POST /api/pitch
 
 ### Phase 6: Dashboard Lead List
 **Goal**: User can see and filter the lead list in the left panel of the dashboard
@@ -100,8 +112,13 @@ Plans:
   3. Typing in the search box narrows leads by name in real time without a network request
   4. Each list item shows name, segment, and a color-coded status badge
   5. The currently selected lead is visually highlighted in the list
-**Plans**: TBD
+  6. status / segment / city filters are forwarded to GET /api/leads as query params
+**Plans**: 2 plans
 **UI hint**: yes
+
+Plans:
+- [x] 06-01-PLAN.md — Dashboard shell, live lead fetch from GET /api/leads, and list item/status badge rendering
+- [x] 06-02-PLAN.md — Quick filters, local name search, query-param-backed selects, and selected-lead highlight/preview
 
 ### Phase 7: Dashboard Lead Detail
 **Goal**: Selecting a lead shows its full detail — scores, problems, contact info, and status controls — in the right panel
@@ -113,8 +130,13 @@ Plans:
   3. Problems list shows up to 5 identified issues for the lead
   4. "Marcar como contatado" button calls PATCH /api/lead/[id] and updates the status badge without full page reload
   5. All async actions (status update, pitch generation) show a loading indicator while pending
-**Plans**: TBD
+  6. Contact section shows phone and email data with graceful fallbacks
+**Plans**: 2 plans
 **UI hint**: yes
+
+Plans:
+- [x] 07-01-PLAN.md — Detail panel shell, score grid, external site link, and contact/problem rendering
+- [x] 07-02-PLAN.md — Async status update via PATCH, optimistic local sync, and loading/error states
 
 ### Phase 8: Dashboard Pitch
 **Goal**: User can generate, review, and send a personalized pitch via WhatsApp or email in one click
@@ -127,8 +149,13 @@ Plans:
   4. "Copiar" copies the pitch text to clipboard
   5. "WhatsApp" opens wa.me deep link in new tab with correctly encoded pitch and normalized Brazilian phone number
   6. "Email" opens a mailto link with subject and encoded pitch body
-**Plans**: TBD
+  7. Pitch generation and copy flows show inline feedback and loading states
+**Plans**: 2 plans
 **UI hint**: yes
+
+Plans:
+- [x] 08-01-PLAN.md — Pitch box UI, generate/re-generate flow, local lead sync, and placeholder rendering
+- [x] 08-02-PLAN.md — Copy action, WhatsApp/email deep links, and Brazilian phone normalization utilities
 
 ## Progress
 
@@ -138,10 +165,10 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | Complete   | 2026-04-16 |
-| 2. Scraper Discovery | 0/2 | Not started | - |
-| 3. Scraper Analysis | 0/TBD | Not started | - |
-| 4. Scraper Persistence | 0/TBD | Not started | - |
-| 5. Dashboard API Routes | 0/TBD | Not started | - |
-| 6. Dashboard Lead List | 0/TBD | Not started | - |
-| 7. Dashboard Lead Detail | 0/TBD | Not started | - |
-| 8. Dashboard Pitch | 0/TBD | Not started | - |
+| 2. Scraper Discovery | 2/2 | Implemented locally; live verification pending | 2026-04-16 |
+| 3. Scraper Analysis | 2/2 | Implemented locally; browser verification pending | 2026-04-16 |
+| 4. Scraper Persistence | 2/2 | Implemented locally; live verification pending | 2026-04-16 |
+| 5. Dashboard API Routes | 2/2 | Implemented locally; live Anthropic verification pending | 2026-04-16 |
+| 6. Dashboard Lead List | 2/2 | Implemented locally; live Supabase data verification pending | 2026-04-16 |
+| 7. Dashboard Lead Detail | 2/2 | Implemented locally; live Supabase mutation verification pending | 2026-04-16 |
+| 8. Dashboard Pitch | 2/2 | Implemented locally; live Anthropic/send verification pending | 2026-04-16 |
