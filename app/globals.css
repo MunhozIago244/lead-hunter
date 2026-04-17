@@ -3,13 +3,15 @@
 :root {
   --background: #f3efe2;
   --foreground: #1d231f;
-  --surface: rgba(255, 252, 245, 0.86);
-  --surface-strong: rgba(255, 252, 245, 0.96);
+  --surface: rgba(255, 252, 248, 0.92);
+  --surface-strong: #fffdf6;
   --border: rgba(29, 35, 31, 0.14);
   --muted: #5c645d;
-  --accent: #0d7a5f;
+  --accent: #0a6b52;
   --accent-strong: #0a5b47;
   --warning: #b86c21;
+  --card-gradient: linear-gradient(135deg, #fffdf6 0%, #f7f4e8 100%);
+  --glow-accent: rgba(10, 107, 82, 0.12);
 }
 
 @theme inline {
@@ -26,6 +28,15 @@
   --font-mono: var(--font-geist-mono);
 }
 
+@layer utilities {
+  .card-gradient {
+    background: var(--card-gradient);
+  }
+  .glow-accent {
+    box-shadow: 0 0 0 4px var(--glow-accent);
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #101512;
@@ -37,6 +48,8 @@
     --accent: #42b894;
     --accent-strong: #6bd4af;
     --warning: #efad5b;
+    --card-gradient: linear-gradient(135deg, rgba(22, 30, 26, 0.94) 0%, rgba(18, 26, 22, 0.88) 100%);
+    --glow-accent: rgba(66, 184, 148, 0.15);
   }
 }
 
