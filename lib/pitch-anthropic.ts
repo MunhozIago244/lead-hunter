@@ -5,7 +5,7 @@ import type { Lead } from '@/types/lead'
 import { PitchProviderError, type PitchPrompt } from '@/lib/pitch-types'
 
 const ANTHROPIC_PROVIDER = 'anthropic'
-const DEFAULT_ANTHROPIC_PITCH_MODEL = 'claude-sonnet-4-20250514'
+const DEFAULT_ANTHROPIC_PITCH_MODEL = 'claude-sonnet-4-6'
 const PITCH_MAX_TOKENS = 300
 const PITCH_TIMEOUT_MS = 10_000
 
