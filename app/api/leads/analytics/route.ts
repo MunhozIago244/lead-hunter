@@ -5,7 +5,7 @@ import {
   requireAuthenticatedRouteUser,
 } from '@/lib/auth'
 import { apiError, apiJson } from '@/lib/api/response'
-import { getLeadAverageScore, LEAD_STATUS_VALUES } from '@/lib/leads'
+import { LEAD_STATUS_VALUES } from '@/lib/leads'
 import type { Lead, LeadStatus } from '@/types/lead'
 
 export const runtime = 'nodejs'
