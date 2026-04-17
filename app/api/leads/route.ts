@@ -20,6 +20,9 @@ import type { Lead } from '@/types/lead'
 
 export const runtime = 'nodejs'
 
+const DEFAULT_LIMIT = 30
+const MAX_LIMIT = 100
+
 export async function GET(request: NextRequest) {
   const authContext = await requireAuthenticatedRouteUser()
 
@@ -34,55 +37,41 @@ export async function GET(request: NextRequest) {
   const search = normalizeSearchParam(searchParams.get('search'))
   const filter = normalizeFilterParam(searchParams.get('filter'))
 
+  const limitParam = parseInt(searchParams.get('limit') ?? '', 10)
+  const offsetParam = parseInt(searchParams.get('offset') ?? '', 10)
+  const limit = !isNaN(limitParam) && limitParam > 0 ? Math.min(limitParam, MAX_LIMIT) : DEFAULT_LIMIT
+  const offset = !isNaN(offsetParam) && offsetParam > 0 ? offsetParam : 0
+
   if (status && !isLeadStatus(status)) {
-    return apiError(
-      400,
-      'Invalid status filter.',
-      'Use one of: new, contacted, replied, closed, discarded.'
-    )
+    return apiError(400, 'Invalid status filter.', 'Use one of: new, contacted, replied, closed, discarded.')
   }
 
   if (filter && !isLeadFilter(filter)) {
-    return apiError(
-      400,
-      'Invalid lead filter.',
-      'Use one of: critical, no-site, contacted.'
-    )
+    return apiError(400, 'Invalid lead filter.', 'Use one of: critical, no-site, contacted.')
   }
 
   try {
+    // critical filter requires post-filtering — fetch without range first
+    const isCritical = filter === 'critical'
+
     let query = authContext.supabase
       .from('leads')
-      .select(LEAD_API_SELECT_COLUMNS)
-      .order('created_at', {
-      ascending: false,
-    })
+      .select(LEAD_API_SELECT_COLUMNS, { count: 'exact' })
+      .order('created_at', { ascending: false })
 
-    if (status) {
-      query = query.eq('status', status)
+    if (status) query = query.eq('status', status)
+    if (segment) query = query.ilike('segment', `%${segment}%`)
+    if (city) query = query.ilike('city', `%${city}%`)
+    if (search) query = query.ilike('name', `%${search}%`)
+    if (filter === 'no-site') query = query.eq('has_site', false)
+    if (filter === 'contacted' && !status) query = query.eq('status', 'contacted')
+
+    // For non-critical filters, apply pagination at DB level
+    if (!isCritical) {
+      query = query.range(offset, offset + limit - 1)
     }
 
-    if (segment) {
-      query = query.ilike('segment', `%${segment}%`)
-    }
-
-    if (city) {
-      query = query.ilike('city', `%${city}%`)
-    }
-
-    if (search) {
-      query = query.ilike('name', `%${search}%`)
-    }
-
-    if (filter === 'no-site') {
-      query = query.eq('has_site', false)
-    }
-
-    if (filter === 'contacted' && !status) {
-      query = query.eq('status', 'contacted')
-    }
-
-    const { data, error } = await query
+    const { data, error, count } = await query
 
     if (error) {
       logger.error({ err: error.message }, '[GET /api/leads] Supabase query error')
@@ -91,14 +80,17 @@ export async function GET(request: NextRequest) {
 
     let leads = ((data ?? []) as unknown) as Lead[]
 
-    if (filter === 'critical') {
-      leads = leads.filter((lead) => {
-        const averageScore = getLeadAverageScore(lead)
-        return averageScore !== null && averageScore < 40
+    if (isCritical) {
+      const allCritical = leads.filter((lead) => {
+        const avg = getLeadAverageScore(lead)
+        return avg !== null && avg < 40
       })
+      const totalCritical = allCritical.length
+      leads = allCritical.slice(offset, offset + limit)
+      return apiJson({ leads, total: totalCritical, limit, offset })
     }
 
-    return apiJson(leads)
+    return apiJson({ leads, total: count ?? leads.length, limit, offset })
   } catch (error) {
     logger.error({ err: error }, '[GET /api/leads] Unexpected error')
     return apiError(500, 'Internal server error.')
