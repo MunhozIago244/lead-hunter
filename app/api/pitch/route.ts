@@ -8,6 +8,7 @@ import {
 import { apiError, apiJson } from '@/lib/api/response'
 import { isUuid } from '@/lib/leads'
 import { generatePitchForLead } from '@/lib/pitch'
+import { PitchProviderError } from '@/lib/pitch-types'
 import {
   buildRateLimitSubject,
   consumeRateLimit,
@@ -96,10 +97,10 @@ export async function POST(request: NextRequest) {
       return apiError(404, 'Lead not found.')
     }
 
-    const pitch = await generatePitchForLead(leadResult.data as Lead)
+    const result = await generatePitchForLead(leadResult.data as Lead)
     const saveResult = await supabase
       .from('leads')
-      .update({ pitch })
+      .update({ pitch: result.pitch })
       .eq('id', leadId)
       .select('pitch')
       .maybeSingle()
@@ -109,8 +110,51 @@ export async function POST(request: NextRequest) {
       return apiError(500, 'Failed to save pitch.')
     }
 
-    return apiJson({ pitch })
+    return apiJson({ pitch: result.pitch, provider: result.provider })
   } catch (error) {
+    if (
+      error instanceof PitchProviderError &&
+      error.reason === 'missing_api_key'
+    ) {
+      logger.error(
+        { provider: error.provider, err: error.message },
+        '[POST /api/pitch] Pitch provider configuration error'
+      )
+      return apiError(
+        503,
+        'Pitch service is not configured.',
+        `Configure the API key for provider "${error.provider}" in the server environment.`
+      )
+    }
+
+    if (
+      error instanceof PitchProviderError &&
+      ['timeout', 'rate_limit', 'provider_unavailable', 'empty_response'].includes(
+        error.reason
+      )
+    ) {
+      logger.error(
+        { provider: error.provider, reason: error.reason, err: error.message },
+        '[POST /api/pitch] Pitch provider unavailable'
+      )
+      return apiError(503, 'Pitch generation is temporarily unavailable.')
+    }
+
+    if (
+      error instanceof Error &&
+      error.message.includes('Missing Supabase admin configuration')
+    ) {
+      logger.error(
+        { err: error.message },
+        '[POST /api/pitch] Supabase admin configuration error'
+      )
+      return apiError(
+        500,
+        'Server database configuration is incomplete.',
+        'Configure SUPABASE_SERVICE_ROLE_KEY and SUPABASE_URL.'
+      )
+    }
+
     logger.error({ err: error }, '[POST /api/pitch] Unexpected error')
     return apiError(500, 'Internal server error.')
   }

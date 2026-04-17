@@ -16,7 +16,7 @@ type LeadPitchBoxProps = {
 }
 
 type PitchResponse =
-  | { pitch: string }
+  | { pitch: string; provider?: 'anthropic' | 'openai' }
   | { error?: string; details?: string }
   | null
 
@@ -40,7 +40,22 @@ async function requestGeneratedPitch(leadId: string) {
     throw new Error(message ?? 'Nao foi possivel gerar o pitch.')
   }
 
-  return payload.pitch
+  return {
+    pitch: payload.pitch,
+    provider: payload.provider ?? null,
+  }
+}
+
+function formatProviderLabel(provider: 'anthropic' | 'openai' | null) {
+  if (provider === 'anthropic') {
+    return 'Anthropic'
+  }
+
+  if (provider === 'openai') {
+    return 'OpenAI'
+  }
+
+  return null
 }
 
 function ActionLink({
@@ -110,19 +125,24 @@ export function LeadPitchBox({
     setErrorMessage(null)
 
     try {
-      const pitch = await requestGeneratedPitch(lead.id)
+      const result = await requestGeneratedPitch(lead.id)
 
       startTransition(() => {
         onLeadUpdated({
           ...lead,
-          pitch,
+          pitch: result.pitch,
         })
       })
 
+      const providerLabel = formatProviderLabel(result.provider)
       setFeedbackMessage(
         hasPitch
-          ? 'Pitch regerado com sucesso.'
-          : 'Pitch gerado com sucesso.'
+          ? providerLabel
+            ? `Pitch regerado com sucesso via ${providerLabel}.`
+            : 'Pitch regerado com sucesso.'
+          : providerLabel
+            ? `Pitch gerado com sucesso via ${providerLabel}.`
+            : 'Pitch gerado com sucesso.'
       )
     } catch (error) {
       setErrorMessage(
