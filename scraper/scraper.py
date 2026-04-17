@@ -54,9 +54,9 @@ else:
     SUPABASE_IMPORT_ERROR = None
 
 try:
-    from tf_playwright_stealth import Stealth
+    from tf_playwright_stealth import stealth_sync as apply_stealth_to_page
 except (ImportError, ModuleNotFoundError):
-    Stealth = None
+    apply_stealth_to_page = None
 
 try:
     from tqdm import tqdm
@@ -802,16 +802,8 @@ def random_scroll_delay(page: Any) -> None:
 
 
 def apply_stealth(page: Any) -> None:
-    if Stealth is None:
-        return
-
-    stealth = Stealth()
-
-    for method_name in ("use_sync", "apply_sync"):
-        method = getattr(stealth, method_name, None)
-        if callable(method):
-            method(page)
-            return
+    if apply_stealth_to_page is not None:
+        apply_stealth_to_page(page)
 
 
 def dismiss_google_consent(page: Any) -> None:
